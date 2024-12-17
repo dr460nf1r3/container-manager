@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="docker/Dockerfile-dind" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+    <deployment type="dockerfile">
+      <settings>
+        <option name="imageTag" value="latest" />
+        <option name="containerName" value="container-manager" />
+        <option name="contextFolderPath" value="." />
+        <option name="sourceFilePath" value="docker/Dockerfile-dind" />
+      </settings>
+    </deployment>
+    <method v="2" />
+  </configuration>
+</component>
