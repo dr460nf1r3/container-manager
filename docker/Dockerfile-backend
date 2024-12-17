@@ -4,7 +4,7 @@ COPY ../. /app
 WORKDIR /app
 
 RUN corepack enable pnpm && \
-  pnpm install
+    pnpm install
 
 RUN pnpm run build
 
@@ -24,7 +24,12 @@ LABEL org.opencontainers.image.version="1.0"
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD curl localhost:3000/health || exit 1
 
 COPY --from=build /app/dist /app
-COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/package.json /app/package.json
+COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
+
+WORKDIR /app
+RUN corepack enable pnpm && \
+    pnpm install --prod
 
 WORKDIR /app
 
