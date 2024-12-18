@@ -1,10 +1,10 @@
 import { Container } from 'dockerode';
+import { AppHealth } from './constants';
 
 export interface ContainerConfig {
-    tag: string;
     branch: string;
     shellPort?: number;
-    commit: string;
+    checkout: string;
     active: boolean;
     containers: Container[];
     image?: string;
@@ -16,10 +16,30 @@ export interface SaveFile {
 }
 
 export interface AppConfig {
+    repoUrl: string;
+    configDirContainer: string;
+    configDirHost: string;
+    containerPrefix: string;
+    customBuildScript: string;
+    customBuildScriptLocal: boolean;
+    hostname: string;
+    idleTimeout: number;
+    masterImage: string;
+    masterImageAddPkg: string;
+    masterTag: string;
+}
+
+export interface ContainerStatus {
+    name: string;
+    branch: string;
+    checkout?: string;
+    active: boolean;
+    lastAccessed?: string;
+}
+
+export interface StatusReport {
+    appHealth: string;
+    containerHosts: ContainerStatus[];
     masterImage: string;
     masterTag: string;
-    configDirHost: string;
-    configDirContainer: string;
-    hostname: string;
-    containerPrefix: string;
 }
