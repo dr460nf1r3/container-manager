@@ -40,3 +40,13 @@ export function initLoglevel(level: string): void {
     Logger.log(`Setting log level to ${logLevel[0]}`, 'initLoglevel');
     Logger.overrideLogger(logLevel);
 }
+
+/**
+ * Delete a file or directory if it exists.
+ * @param path The path to delete.
+ */
+export function deleteIfExists(path: fs.PathLike): void {
+    if (pathExists(path)) {
+        fs.rmSync(path, { recursive: true });
+    }
+}

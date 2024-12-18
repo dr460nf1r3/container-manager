@@ -59,6 +59,10 @@ services:
 - `NODE_ENV`: Node environment, either `development` or `production`
 - `PORT`: Port on which the application listens
 
+## API documentation
+
+The Swagger API documentation can be found at `/api` when the application is running (e.g. [http://localhost/api](http://localhost/api)).
+
 ## Project setup
 
 ### Install dependencies

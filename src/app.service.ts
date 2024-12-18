@@ -65,4 +65,12 @@ export class AppService {
     async getStatus(): Promise<StatusReport> {
         return await this.manager.getStatus();
     }
+
+    /**
+     * Remove a container host and its associated resources.
+     * @param branch The branch of the container host to remove.
+     */
+    async deleteContainer(branch: string): Promise<void> {
+        return await this.manager.deleteContainer(branch);
+    }
 }
