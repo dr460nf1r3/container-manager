@@ -2,6 +2,9 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ContainerManager } from './container-manager';
 import { Container, ContainerInspectInfo } from 'dockerode';
 import { ConfigService } from '@nestjs/config';
+import { AppHealth } from './constants';
+import { RunContainerDto } from './validation';
+import { StatusReport } from './interfaces';
 
 @Injectable()
 export class AppService {
@@ -15,9 +18,9 @@ export class AppService {
      * Creates a new container host for the specified branch and commit.
      * @param options The branch and commit to deploy.
      */
-    async newDeployment(options: { commit: string; branch: string }): Promise<void> {
+    async newDeployment(options: RunContainerDto): Promise<void> {
         Logger.log(
-            `Running container with branch: ${options.branch} and commit: ${options.commit}`,
+            `Running container with branch: ${options.branch}${options.branch ? ` and checkout option: ${options.checkout}` : ''}`,
             'AppService/newDeployment',
         );
         await this.manager.newDeployment(options);
@@ -30,7 +33,6 @@ export class AppService {
      * @returns The IP address of the container hosting the requested service.
      */
     async proxyRequest(host: string): Promise<string> {
-        Logger.log('Redirecting to proxy...', 'AppController');
         const container: Container = await this.manager.accessContainer(host);
 
         if (!container) {
@@ -45,5 +47,21 @@ export class AppService {
      */
     async shutdownNonBusyContainers(): Promise<void> {
         await this.manager.shutdownNonBusyContainers();
+    }
+
+    /**
+     * Check the health of the application.
+     * @returns The health of the application.
+     */
+    async checkHealth(): Promise<AppHealth> {
+        return await this.manager.checkHealth();
+    }
+
+    /**
+     * Get the status of the application, including the health of the application and the status of the container hosts.
+     * @returns The status of the application.
+     */
+    async getStatus(): Promise<StatusReport> {
+        return await this.manager.getStatus();
     }
 }

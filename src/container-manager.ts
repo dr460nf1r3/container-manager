@@ -7,14 +7,16 @@ import Dockerode, {
     ImageInfo,
     ImageInspectInfo,
 } from 'dockerode';
-import { AppConfig, ContainerConfig, SaveFile } from './interfaces';
+import { AppConfig, ContainerConfig, SaveFile, StatusReport } from './interfaces';
 import * as Stream from 'node:stream';
 import { Logger, NotFoundException } from '@nestjs/common';
-import { ONE_MINUTE, ONE_WEEK } from './constants';
+import { AppHealth, ONE_MINUTE, ONE_WEEK } from './constants';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
 import { getConfig } from './config';
+import { RunContainerDto } from './validation';
+import { pathExists } from './functions';
 
 export class ContainerManager {
     containers: ContainerConfig[] = [];
@@ -72,19 +74,18 @@ export class ContainerManager {
         const [image, tag] = inspect.Config.Image.split(':');
 
         let branch: string;
-        let commit: string;
+        let checkout: string;
         if (inspect.Name.includes(`${this.config.containerPrefix}`)) {
             branch = inspect.Config.Env.find((env) => env.startsWith('CI_BRANCH=')).split('=')[1];
-            commit = inspect.Config.Env.find((env) => env.startsWith('CI_COMMIT=')).split('=')[1];
+            checkout = inspect.Config.Env.find((env) => env.startsWith('CI_CHECKOUT=')).split('=')[1];
         }
         const active: boolean = inspect.State.Running;
         return {
-            tag,
-            branch,
-            image,
-            commit,
             active,
+            branch,
+            checkout,
             containers: [container],
+            image,
         };
     }
 
@@ -92,54 +93,85 @@ export class ContainerManager {
      * Deploys a new container for a branch.
      * @param options The options for the deployment, including the branch to deploy.
      */
-    async newDeployment(options: { branch: string; tag?: string; images?: string[]; commit?: string }): Promise<void> {
-        if (this.containers.find((container) => container.branch.includes(options.branch))) {
-            Logger.log(
-                `Container host for branch ${options.branch} already exists, removing...`,
-                'ContainerManager/deployMaster',
-            );
+    async newDeployment(options: RunContainerDto): Promise<void> {
+        const containerInConfig: ContainerConfig = this.containers.find((container) => container.branch.includes(options.branch));
+        const containerIsRunning: ContainerInfo = (await this.docker.listContainers({ all: true })).find((container) => container.Names.includes(`/${this.config.containerPrefix}-${options.branch}`));
+
+        if (containerIsRunning && containerInConfig) {
+            Logger.log(`Container host for branch ${options.branch} already exists in config...`, 'ContainerManager/newDeployment');
             const container: ContainerInfo = (await this.docker.listContainers({ all: true })).find((container) =>
                 container.Names.includes(`/${this.config.containerPrefix}-${options.branch}`),
             );
+            await this.kill(this.docker.getContainer(container.Id));
 
-            if (container?.Id) {
-                await this.kill(this.docker.getContainer(container.Id));
-            }
-            const containerIndex: number = this.containers.indexOf(
-                this.containers.find((container) => container.tag === options.tag),
-            );
-            this.containers.slice(containerIndex, 1);
-        } else {
-            await this.createContainerHost({ branch: options.branch });
+            const containerIndex: number = this.containers.indexOf(this.containers.find((container) => container.branch === options.branch));
+            this.containers.splice(containerIndex, 1);
+
+            await this.createContainerHost(options);
+        } else if (!containerInConfig && !containerIsRunning) {
+            Logger.log(`Container host for branch ${options.branch} doesn't exist in config, creating a new one...`, 'ContainerManager/newDeployment');
+            await this.createContainerHost(options);
+        } else if (!containerInConfig && containerIsRunning) {
+            Logger.log(`Container host for branch ${options.branch} does not exist in config but is already running, recreating...`, 'ContainerManager/newDeployment');
+            await this.kill(this.docker.getContainer(containerIsRunning.Id));
+            await this.createContainerHost(options);
         }
+
+        await this.saveState();
     }
 
     /**
      * Creates a container host for a branch, which will be used to run Docker in Docker.
      * @param options The options for the container host, including the branch to create it for.
      */
-    private async createContainerHost(options: { branch: string }): Promise<void> {
+    private async createContainerHost(options: { branch: string, checkout: string }): Promise<void> {
         Logger.log(`Creating container host for branch ${options.branch}`, 'ContainerManager/createContainerHost');
 
         try {
-            const configDirHost: string = join(process.cwd(), this.config.configDirHost);
+            const configDirHost: string = join(process.cwd(), this.config.configDirHost, options.branch);
+
+            if (!pathExists(configDirHost)) {
+                Logger.debug(`Creating config directory for branch ${options.branch}`, 'ContainerManager/createContainerHost');
+                await fs.mkdir(configDirHost, { recursive: true });
+            }
+
+            if (this.config.customBuildScriptLocal) {
+                Logger.debug(`Copying build script to config directory for branch ${options.branch}`, 'ContainerManager/createContainerHost');
+                const scriptContent: string = await fs.readFile(this.config.customBuildScript, 'utf-8');
+                await fs.writeFile(join(configDirHost, 'build.sh'), scriptContent);
+            }
+
             const masterContainer: Container = await this.create(
-                this.config.masterImage,
+                `${this.config.masterImage}:${this.config.masterTag}`,
                 `${this.config.containerPrefix}-${options.branch}`,
                 undefined,
-                [`${configDirHost}:${this.config.configDirContainer}`],
-                [`CI_COMMIT=${options.branch}`, `CI_BRANCH=${options.branch}`],
+                [
+                    `${configDirHost}:${this.config.configDirContainer}`,
+                ],
+                [
+                    `CI_BRANCH=${options.branch}`,
+                    `CI_BUILD_SCRIPT=${this.config.customBuildScriptLocal ? '/config/build.sh' : this.config.customBuildScript}`,
+                    `CI_CHECKOUT=${options.checkout ? options.checkout : options.branch}`,
+                    `CI_REPO_URL=${this.config.repoUrl}`,
+                    `CI_ADD_PACKAGES=${this.config.masterImageAddPkg}`,
+                ],
                 { Privileged: true },
             );
 
-            void this.start(masterContainer);
+            Logger.log(`Starting container host for branch ${options.branch}`, 'ContainerManager/createContainerHost');
+            await this.start(masterContainer);
+
+            // Wait for the container to start up, it'll die if anything doesn't add up
+            Logger.debug(`Waiting for container to start up...`, 'ContainerManager/createContainerHost');
+            await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+
             this.containers.push({
-                tag: options.branch,
                 branch: options.branch,
-                commit: options.branch,
+                checkout: options.checkout ? options.checkout : options.branch,
                 active: true,
                 containers: [masterContainer],
             });
+            Logger.log(`Container host for branch ${options.branch} created successfully`, 'ContainerManager/createContainerHost');
         } catch (err: unknown) {
             Logger.error(err, 'ContainerManager/createContainerHost');
             throw err;
@@ -312,40 +344,31 @@ export class ContainerManager {
     }
 
     /**
-     * Deploys the primary image, which is used to run Docker in Docker.
+     * Pulls the primary container image, which is used to run Docker in Docker.
      */
     private async ensureMasterImage(): Promise<void> {
-        Logger.log('Ensuring master image is built...', 'ContainerManager/ensureMasterImage');
+        Logger.log('Ensuring master image is available...', 'ContainerManager/ensureMasterImage');
         const masterImage: ImageInfo = (await this.docker.listImages({ all: true })).find((image: any) =>
             image.RepoTags.includes(`${this.config.masterImage}:${this.config.masterTag}`),
         );
 
         try {
             if (!masterImage) {
-                Logger.log('Master image not found, building a fresh one...', 'ContainerManager/ensureMasterImage');
-                await this.buildImage(
-                    this.config.masterImage,
-                    ['Dockerfile-dind', 'compose.yaml', 'entry_point.sh'],
-                    '.',
-                    'latest',
-                );
+                Logger.log('Master image not found, pulling a fresh one...', 'ContainerManager/ensureMasterImage');
+                await this.getImage(`${this.config.masterImage}:${this.config.masterTag}`);
+                Logger.log('Master image pulled', 'ContainerManager/ensureMasterImage');
             } else {
                 Logger.log('Master image found, checking timestamp...', 'ContainerManager/ensureMasterImage');
                 const info: ImageInspectInfo = await this.docker.getImage(masterImage.Id).inspect();
 
                 if (
-                    info.Config.Labels?.timestamp &&
-                    new Date().getTime() - parseInt(info.Config.Labels.timestamp) > ONE_WEEK
+                    info.Config.Labels['org.opencontainers.image.created'] &&
+                    new Date().getTime() - new Date(info.Config.Labels['org.opencontainers.image.created']).getTime() > ONE_WEEK
                 ) {
-                    Logger.log('Master image is outdated, rebuilding...', 'ContainerManager/ensureMasterImage');
-                    await this.buildImage(
-                        this.config.masterImage,
-                        ['Dockerfile-dind', 'compose.yaml', 'entry_point.sh'],
-                        '.',
-                        'latest',
-                    );
+                    Logger.log('Master image is outdated, updating...', 'ContainerManager/ensureMasterImage');
+                    await this.getImage(`${this.config.masterImage}:${this.config.masterTag}`);
                 } else {
-                    Logger.log('Master image is up to date, no need to rebuild', 'ContainerManager/ensureMasterImage');
+                    Logger.log('Master image is up to date, no need to do anything', 'ContainerManager/ensureMasterImage');
                 }
             }
         } catch (err: unknown) {
@@ -436,9 +459,10 @@ export class ContainerManager {
         for (const containerConfig of this.containers) {
             try {
                 if (
-                    !containerConfig.active &&
-                    containerConfig.lastAccessed &&
-                    now.getTime() - containerConfig.lastAccessed > ONE_MINUTE
+                    (containerConfig.active &&
+                        containerConfig.lastAccessed &&
+                        now.getTime() - containerConfig.lastAccessed > ONE_MINUTE) || !containerConfig.lastAccessed
+
                 ) {
                     Logger.log(
                         `Shutting down container for branch ${containerConfig.branch}`,
@@ -501,5 +525,43 @@ export class ContainerManager {
             await this.saveState();
             process.exit(0);
         });
+    }
+
+    /**
+     * Checks the health of the container manager.
+     * @returns The health status of the container manager (OK or NOT OK).
+     */
+    async checkHealth(): Promise<AppHealth> {
+        let dockerOk: AppHealth = AppHealth.ERROR;
+        try {
+            await this.docker.ping();
+            dockerOk = AppHealth.OK;
+        } catch (err: unknown) {
+            Logger.error(err, 'ContainerManager/checkHealth');
+            throw err;
+        }
+
+        return dockerOk;
+    }
+
+    async getStatus(): Promise<StatusReport> {
+        const status = {
+            appHealth: (await this.checkHealth()) === AppHealth.OK ? 'healthy' : 'unhealthy',
+            containerHosts: [],
+            masterImage: this.config.masterImage,
+            masterTag: this.config.masterTag,
+        };
+
+        for (const container of this.containers) {
+            status.containerHosts.push({
+                name: container.branch,
+                branch: container.branch,
+                checkout: container.checkout,
+                active: container.active,
+                lastAccessed: container.lastAccessed ? new Date(container.lastAccessed).toISOString() : undefined,
+            });
+        }
+
+        return status;
     }
 }
