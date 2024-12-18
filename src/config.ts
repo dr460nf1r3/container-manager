@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
-import { AppConfig } from './interfaces';
-import { ONE_MINUTE, TEN_MINUTES } from './constants';
+import { AppConfig, SuspendMode } from './interfaces';
+import { ONE_MINUTE } from './constants';
 
 export function getConfig(configService: ConfigService): AppConfig {
     return {
@@ -15,5 +15,6 @@ export function getConfig(configService: ConfigService): AppConfig {
         masterImageAddPkg: configService.get<string>('CONFIG_MASTER_IMAGE_ADD_PKG') ?? '',
         masterTag: configService.get<string>('CONFIG_MASTER_TAG') ?? 'main',
         repoUrl: configService.getOrThrow<string>('CONFIG_REPO_URL'),
+        suspendMode: configService.get<SuspendMode>('CONFIG_SUSPEND_MODE') ?? 'stop',
     };
 }

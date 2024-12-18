@@ -5,13 +5,14 @@ import { ConfigService } from '@nestjs/config';
 import { AppHealth } from './constants';
 import { RunContainerDto } from './validation';
 import { StatusReport } from './interfaces';
+import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class AppService {
     manager: ContainerManager;
 
-    constructor(private configService: ConfigService) {
-        this.manager = new ContainerManager(this.configService);
+    constructor(private readonly configService: ConfigService, private readonly httpService: HttpService) {
+        this.manager = new ContainerManager(this.configService, this.httpService);
     }
 
     /**

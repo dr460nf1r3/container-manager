@@ -15,6 +15,8 @@ export interface SaveFile {
     containers: ContainerConfig[];
 }
 
+export type SuspendMode = "stop" | "pause";
+
 export interface AppConfig {
     repoUrl: string;
     configDirContainer: string;
@@ -27,6 +29,7 @@ export interface AppConfig {
     masterImage: string;
     masterImageAddPkg: string;
     masterTag: string;
+    suspendMode: SuspendMode;
 }
 
 export interface ContainerStatus {

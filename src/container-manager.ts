@@ -17,6 +17,9 @@ import { ConfigService } from '@nestjs/config';
 import { getConfig } from './config';
 import { RunContainerDto } from './validation';
 import { pathExists } from './functions';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
+import { AxiosResponse } from 'axios';
 
 export class ContainerManager {
     containers: ContainerConfig[] = [];
@@ -25,7 +28,7 @@ export class ContainerManager {
     docker: Docker;
     initialized: boolean = false;
 
-    constructor(private configService: ConfigService) {
+    constructor(private configService: ConfigService, private httpService: HttpService) {
         const socket: string = this.configService.getOrThrow<string>('DOCKER_SOCKET');
         this.docker = new Docker({ socketPath: socket });
 
@@ -294,7 +297,7 @@ export class ContainerManager {
             Cmd: args,
             HostConfig: Object.assign(
                 {
-                    AutoRemove: true,
+                    AutoRemove: false,
                     Binds: binds,
                 },
                 HostConfig ? HostConfig : {},
@@ -428,26 +431,25 @@ export class ContainerManager {
         const containerName: string = host.split('.')[0];
         Logger.debug(`Accessing container via subdomain ${containerName}`, 'ContainerManager/accessContainer');
 
-        const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
-        if (container && container.active) {
-            Logger.debug(`Container found among active containers...`, 'ContainerManager/accessContainer');
-            container.lastAccessed = new Date().getTime();
-            return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`);
+        try {
+            const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
+            if (container && container.active) {
+                Logger.debug(`Container found among active containers...`, 'ContainerManager/accessContainer');
+                container.lastAccessed = new Date().getTime();
+                return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`);
+            }
+
+            Logger.debug(`Container not found for ${containerName}, searching inactive ones...`, 'ContainerManager/accessContainer');
+            if (container && !container.active) {
+                Logger.debug(`Container found in inactive containers, starting...`, 'ContainerManager/accessContainer');
+                return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`);
+            }
+        } catch (err: unknown) {
+            Logger.error(err, 'ContainerManager/accessContainer');
+            throw err;
         }
 
-        Logger.debug(
-            `Container not found for ${containerName}, searching inactive ones...`,
-            'ContainerManager/accessContainer',
-        );
-        if (container && !container.active) {
-            Logger.debug(`Container found in inactive containers, starting...`, 'ContainerManager/accessContainer');
-            return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`);
-        }
-
-        Logger.warn(
-            `Container not found in inactive containers, can't serve request`,
-            'ContainerManager/accessContainer',
-        );
+        Logger.warn(`Container not found in inactive containers, can't serve request`, 'ContainerManager/accessContainer');
         throw new NotFoundException();
     }
 
@@ -471,7 +473,12 @@ export class ContainerManager {
                     const runningContainer: Container = await this.getContainer(
                         `${this.config.containerPrefix}-${containerConfig.branch}`,
                     );
-                    await runningContainer.pause({ t: 10 });
+
+                    if (this.config.suspendMode === 'stop') {
+                        await runningContainer.stop({ t: 30 });
+                    } else if (this.config.suspendMode === 'pause') {
+                        await runningContainer.pause({ t: 10 });
+                    }
                     containerConfig.active = false;
                 }
             } catch (err: unknown) {
@@ -498,9 +505,16 @@ export class ContainerManager {
             Logger.debug(`Running container ${containerName} found, returning...`, 'ContainerManager/getContainer');
             return this.docker.getContainer(container.Id);
         } else if (container) {
-            Logger.debug(`Paused container ${containerName} found, unpausing...`, 'ContainerManager/getContainer');
+            Logger.debug(`Suspended container ${containerName} found, resuming...`, 'ContainerManager/getContainer');
             const inactiveContainer: Container = this.docker.getContainer(container.Id);
-            await inactiveContainer.unpause();
+
+            if (this.config.suspendMode === 'stop') {
+                await inactiveContainer.start();
+            } else if (this.config.suspendMode === 'pause') {
+                await inactiveContainer.unpause();
+            }
+
+            await this.waitForContainerUp(inactiveContainer);
             return inactiveContainer;
         }
 
@@ -563,5 +577,30 @@ export class ContainerManager {
         }
 
         return status;
+    }
+
+    /**
+     * Waits for a container to be up (HTTP 200 on port 80).
+     * Throws an error if it fails after five attempts.
+     * Especially useful for stopped containers that take a while to start up.
+     * @param container The container to wait for.
+     * @param attempt The attempt number.
+     * @returns An empty promise that resolves when the container is up.
+     */
+    async waitForContainerUp(container: Container, attempt = 1): Promise<void> {
+        const stats: ContainerInspectInfo = await container.inspect();
+        const targetIp: string = stats.NetworkSettings.IPAddress;
+
+        // noinspection HttpUrlsUsage - internal only, so it's fine in this case
+        const outcome: AxiosResponse<string> = await lastValueFrom(this.httpService.get(`http://${targetIp}`));
+        if (outcome.status ! == 200) {
+            if (attempt > 50) {
+                throw new Error(`Failed to connect to container after ${100 * 50 / 1000} seconds, it likely died: ${outcome.statusText}`);
+            }
+            await new Promise<void>((resolve) => setTimeout(resolve, 100));
+            await this.waitForContainerUp(container, attempt++);
+        } else {
+            Logger.log(`Container ${container.id} is up`, 'ContainerManager/waitForContainerUp');
+        }
     }
 }

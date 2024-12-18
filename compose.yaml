@@ -19,4 +19,5 @@ services:
             CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
             CONFIG_MASTER_IMAGE_TAG: main
             CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
+            CONFIG_SUSPEND_MODE: stop
             NODE_ENV: production

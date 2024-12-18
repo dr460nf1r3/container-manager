@@ -38,8 +38,26 @@ services:
             CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
             CONFIG_MASTER_IMAGE_TAG: main
             CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
+            CONFIG_SUSPEND_MODE: stop
             NODE_ENV: production
 ```
+
+## Environment variables
+
+- `CONFIG_CONTAINER_PREFIX`: Prefix for container host names, prepended to the branch name
+- `CONFIG_CUSTOM_BUILD_SCRIPT`: Path to a custom build script that is executed after the repository is cloned, or the host when CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL is set to true
+- `CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL`: If set to true, the custom build script is copied from the host to the container and and executed here
+- `CONFIG_DIR_CONTAINER`: Directory in the container where the config files are stored
+- `CONFIG_DIR_HOST`: Directory on the host where the per-branch directories are stored
+- `CONFIG_HOSTNAME`: Hostname of the container host
+- `CONFIG_IDLE_TIMEOUT`: Time in milliseconds after which a container is paused if no requests are received
+- `CONFIG_LOGLEVEL`: Log level of the application
+- `CONFIG_MASTER_IMAGE`: Image used to create the container hosts
+- `CONFIG_MASTER_IMAGE_TAG`: Tag of the image used to create the container hosts
+- `CONFIG_REPO_URL`: URL of the repository that is cloned when a container host is created
+- `CONFIG_SUSPEND_MODE`: Mode in which the container is paused, either `stop` or `pause`
+- `NODE_ENV`: Node environment, either `development` or `production`
+- `PORT`: Port on which the application listens
 
 ## Project setup
 
