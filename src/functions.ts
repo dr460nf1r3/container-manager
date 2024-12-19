@@ -7,12 +7,13 @@ import { Logger, LogLevel } from '@nestjs/common';
  * @returns True if the path exists, false otherwise.
  */
 export function pathExists(path: fs.PathLike): boolean {
-    try {
-        fs.accessSync(path);
-        return true;
-    } catch (error) {
-        return false;
-    }
+  try {
+    fs.accessSync(path);
+    return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
@@ -20,14 +21,14 @@ export function pathExists(path: fs.PathLike): boolean {
  * @param level The log level array to pass to overrideLogger
  */
 export function loglevelToNestJsArray(level: string): LogLevel[] {
-    const allLevels: LogLevel[] = ['verbose', 'debug', 'log', 'warn', 'error', 'fatal'];
-    let index: number = allLevels.indexOf(level as LogLevel);
+  const allLevels: LogLevel[] = ['verbose', 'debug', 'log', 'warn', 'error', 'fatal'];
+  let index: number = allLevels.indexOf(level as LogLevel);
 
-    if (index === -1) {
-        Logger.warn(`Invalid log level: ${level}. Defaulting to 'log'.`);
-        index = 1;
-    }
-    return allLevels.slice(index);
+  if (index === -1) {
+    Logger.warn(`Invalid log level: ${level}. Defaulting to 'log'.`);
+    index = 1;
+  }
+  return allLevels.slice(index);
 }
 
 /**
@@ -35,10 +36,10 @@ export function loglevelToNestJsArray(level: string): LogLevel[] {
  * @param level The log level to set.
  */
 export function initLoglevel(level: string): void {
-    const logLevel: LogLevel[] = loglevelToNestJsArray(level);
+  const logLevel: LogLevel[] = loglevelToNestJsArray(level);
 
-    Logger.log(`Setting log level to ${logLevel[0]}`, 'initLoglevel');
-    Logger.overrideLogger(logLevel);
+  Logger.log(`Setting log level to ${logLevel[0]}`, 'initLoglevel');
+  Logger.overrideLogger(logLevel);
 }
 
 /**
@@ -46,7 +47,7 @@ export function initLoglevel(level: string): void {
  * @param path The path to delete.
  */
 export function deleteIfExists(path: fs.PathLike): void {
-    if (pathExists(path)) {
-        fs.rmSync(path, { recursive: true });
-    }
+  if (pathExists(path)) {
+    fs.rmSync(path, { recursive: true });
+  }
 }

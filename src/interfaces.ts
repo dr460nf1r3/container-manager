@@ -1,48 +1,47 @@
 import { Container } from 'dockerode';
-import { AppHealth } from './constants';
 
 export interface ContainerConfig {
-    branch: string;
-    shellPort?: number;
-    checkout: string;
-    active: boolean;
-    containers: Container[];
-    image?: string;
-    lastAccessed?: number;
+  branch: string;
+  shellPort?: number;
+  checkout: string;
+  active: boolean;
+  containers: Container[];
+  image?: string;
+  lastAccessed?: number;
 }
 
 export interface SaveFile {
-    containers: ContainerConfig[];
+  containers: ContainerConfig[];
 }
 
-export type SuspendMode = "stop" | "pause";
+export type SuspendMode = 'stop' | 'pause';
 
 export interface AppConfig {
-    repoUrl: string;
-    configDirContainer: string;
-    configDirHost: string;
-    containerPrefix: string;
-    customBuildScript: string;
-    customBuildScriptLocal: boolean;
-    hostname: string;
-    idleTimeout: number;
-    masterImage: string;
-    masterImageAddPkg: string;
-    masterTag: string;
-    suspendMode: SuspendMode;
+  repoUrl: string;
+  configDirContainer: string;
+  configDirHost: string;
+  containerPrefix: string;
+  customBuildScript: string;
+  customBuildScriptLocal: boolean;
+  hostname: string;
+  idleTimeout: number;
+  masterImage: string;
+  masterImageAddPkg: string;
+  masterTag: string;
+  suspendMode: SuspendMode;
 }
 
 export interface ContainerStatus {
-    name: string;
-    branch: string;
-    checkout?: string;
-    active: boolean;
-    lastAccessed?: string;
+  name: string;
+  branch: string;
+  checkout?: string;
+  active: boolean;
+  lastAccessed?: string;
 }
 
 export interface StatusReport {
-    appHealth: string;
-    containerHosts: ContainerStatus[];
-    masterImage: string;
-    masterTag: string;
+  appHealth: string;
+  containerHosts: ContainerStatus[];
+  masterImage: string;
+  masterTag: string;
 }

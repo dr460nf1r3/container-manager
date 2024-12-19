@@ -8,22 +8,24 @@ import { APP_GUARD } from '@nestjs/core';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
-    imports: [
-        ConfigModule.forRoot(),
-        HttpModule,
-        ScheduleModule.forRoot(),
-        ThrottlerModule.forRoot([{
-            ttl: 60000,
-            limit: 10,
-        }]),
-    ],
-    controllers: [AppController],
-    providers: [AppService,
-        {
-            provide: APP_GUARD,
-            useClass: ThrottlerGuard,
-        },
-    ],
+  imports: [
+    ConfigModule.forRoot(),
+    HttpModule,
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 10,
+      },
+    ]),
+  ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {
-}
+export class AppModule {}
