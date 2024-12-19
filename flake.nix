@@ -48,7 +48,7 @@
             description = "Run pnpm lint";
             enable = true;
             entry = ''
-              pnpm run lint
+              ${pkgs.pnpm}/bin/pnpm run lint
             '';
             name = "pnpm-lint";
           };

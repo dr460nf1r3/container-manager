@@ -10,12 +10,8 @@ on:
       - '*.*.*'
   pull_request:
 jobs:
-  docker:
+  lint:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,14 +29,36 @@ jobs:
             accept-flake-config = true
           diagnostic-endpoint: ''
 
-      - name: Run linters via nix flake check
-        run: nix flake check
+      - name: Run linters via pre-commit
+        run: nix develop -c pre-commit run --all-files
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Run tests
         run: |
           cp test/env .env
           pnpm test
 
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+    needs:
+      - lint
+      - test
+    steps:
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
