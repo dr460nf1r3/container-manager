@@ -11,7 +11,7 @@ RUN pnpm run build
 FROM node:22-alpine
 
 RUN apk update --no-cache && \
-  apk add --no-cache curl
+  apk add --no-cache curl=8.11.1-r0
 
 LABEL maintainer="Nico Jensch <root@dr460nf1r3.org>"
 LABEL description="NestJS backend container for the container manager, ready to use for a Docker in Docker test environment"
