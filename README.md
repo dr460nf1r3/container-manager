@@ -9,7 +9,7 @@
 This is an application for managing Docker in Docker test environments.
 Specifically, it is used to manage the creation and deletion of per-branch Docker container hosts.
 Furthermore, it acts as proxy, routing to the correct container based on the subdomain of the request.
-If no request comes in for a certain amount of time, the container is automatically paused to save resources.
+If no request comes in for a certain amount of time, the container is automatically suspended to save resources.
 Once it receives a request again, it is resumed.
 
 It works in connection with the [container-manager-dind](https://github.com/dr460nf1r3/container-manager-dind) image,
@@ -51,8 +51,17 @@ services:
       NODE_ENV: production
 ```
 
+## Running the application
+
+After setting up the application via a compose file, you can create a container host by sending either a POST or GET
+request to the `/run` route.
+
+- The request must contain the branch name as a query parameter, e.g. `http://localhost/run?branch=main`.
+- For supplying secrets, the a POST request can be used with a JSON body containing the branch name and secrets.
+
 ## Environment variables
 
+- `CONFIG_ADMIN_SECRET`: Secret used to authenticate requests management requests, optional
 - `CONFIG_CONTAINER_PREFIX`: Prefix for container host names, prepended to the branch name
 - `CONFIG_CUSTOM_BUILD_SCRIPT`: Path to a custom build script that is executed after the repository is cloned, or the
   host when CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL is set to true
@@ -70,6 +79,19 @@ services:
 - `NODE_ENV`: Node environment, either `development` or `production`
 - `PORT`: Port on which the application listens
 
+## Admin routes
+
+### Calling routes
+
+The admin routes can only be called by adding the `x-admin` header to the request.
+This is specifically required to prevent accidental calls to these routes while proxying requests.
+
+### Protect routes
+
+To protect the admin routes, you can set the `CONFIG_ADMIN_SECRET` environment variable.
+If set, the secret must be sent in the `x-admin-secret` header of the request.
+If the secret is not set, the routes are available without authentication.
+
 ## API documentation
 
 The Swagger API documentation can be found at `/api` when the application is running (
@@ -77,7 +99,18 @@ e.g. [http://localhost/api](http://localhost/api)).
 
 ## Project setup
 
-### Install dependencies
+### Install dependencies with Nix
+
+```bash
+$ nix develop
+```
+
+This will:
+
+- set up a Nix shell with pre-commit hooks and dev tools like `commitizen`
+- install all dependencies with `pnpm install`
+
+### Install dependencies without Nix
 
 ```bash
 $ pnpm install

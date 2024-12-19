@@ -14,6 +14,7 @@ import {
   ApiOkResponse,
   ApiResponse,
 } from '@nestjs/swagger';
+import { checkWhetherWeShouldAdmin } from './middleware';
 
 @Controller()
 export class AppController {
@@ -40,7 +41,14 @@ export class AppController {
   @ApiCreatedResponse({ description: 'The deployment has been created successfully.' })
   @ApiResponse({ status: 500, description: 'An error occurred while creating the deployment.' })
   @Get('run')
-  async runContainerGet(@Query() query: RunContainerDto): Promise<void> {
+  async runContainerGet(
+    @Req() req: FastifyRequest,
+    @Res() res: FastifyReply,
+    @Query() query: RunContainerDto,
+  ): Promise<void> {
+    if (!checkWhetherWeShouldAdmin(req)) {
+      await this.redirectToProxy(req, res);
+    }
     return await this.appService.newDeployment(query);
   }
 
@@ -48,7 +56,14 @@ export class AppController {
   @ApiCreatedResponse({ description: 'The deployment has been created successfully.' })
   @ApiResponse({ status: 500, description: 'An error occurred while creating the deployment.' })
   @Post('run')
-  async runContainerPost(@Body() runContainerDto: RunContainerDto): Promise<void> {
+  async runContainerPost(
+    @Req() req: FastifyRequest,
+    @Res() res: FastifyReply,
+    @Body() runContainerDto: RunContainerDto,
+  ): Promise<void> {
+    if (!checkWhetherWeShouldAdmin(req)) {
+      await this.redirectToProxy(req, res);
+    }
     return await this.appService.newDeployment(runContainerDto);
   }
 
@@ -57,7 +72,6 @@ export class AppController {
   @Get('health')
   async healthCheck(): Promise<{ status: string }> {
     const currentHealth: AppHealth = await this.appService.checkHealth();
-
     if (currentHealth === AppHealth.OK) {
       return { status: 'OK' };
     } else {
@@ -68,14 +82,26 @@ export class AppController {
   @ApiOkResponse({ description: 'The status of the application.' })
   @ApiInternalServerErrorResponse({ description: 'An error occurred while retrieving the status of the application.' })
   @Get('status')
-  async getStatus(): Promise<StatusReport> {
+  async getStatus(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<StatusReport> {
+    if (!checkWhetherWeShouldAdmin(req)) {
+      await this.redirectToProxy(req, res);
+    }
+
     return this.appService.getStatus();
   }
 
   @ApiCreatedResponse({ description: 'The deployment has been deleted successfully.' })
   @ApiNotFoundResponse({ description: 'No deployment found with that name.' })
   @Get('delete')
-  async deleteContainer(@Query() query: DeleteDeploymentDto): Promise<void> {
+  async deleteContainer(
+    @Req() req: FastifyRequest,
+    @Res() res: FastifyReply,
+    @Query() query: DeleteDeploymentDto,
+  ): Promise<void> {
+    if (!checkWhetherWeShouldAdmin(req)) {
+      await this.redirectToProxy(req, res);
+    }
+
     return await this.appService.deleteContainer(query.branch);
   }
 }

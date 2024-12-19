@@ -35,6 +35,7 @@ export class ContainerManager {
   ) {
     const socket: string = this.configService.getOrThrow<string>('DOCKER_SOCKET');
     this.docker = new Docker({ socketPath: socket });
+    Logger.debug(`Connected to Docker socket at ${socket}`, 'ContainerManager');
 
     void this.init();
     this.initProcessHandling();
