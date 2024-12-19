@@ -49,6 +49,21 @@ jobs:
           cp test/env .env
           pnpm test
 
+  test-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: bash test/e2e.sh
+
   docker:
     runs-on: ubuntu-latest
     permissions:
@@ -58,6 +73,7 @@ jobs:
     needs:
       - lint
       - test
+      - test-e2e
     steps:
       - name: Docker meta
         id: meta
