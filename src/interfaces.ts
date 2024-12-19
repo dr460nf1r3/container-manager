@@ -1,13 +1,13 @@
 import { Container } from 'dockerode';
 
 export interface ContainerConfig {
-  branch: string;
-  shellPort?: number;
-  checkout: string;
   active: boolean;
+  branch: string;
+  checkout: string;
   containers: Container[];
   image?: string;
   lastAccessed?: number;
+  shellPort?: number;
 }
 
 export interface SaveFile {
@@ -17,7 +17,6 @@ export interface SaveFile {
 export type SuspendMode = 'stop' | 'pause';
 
 export interface AppConfig {
-  repoUrl: string;
   configDirContainer: string;
   configDirHost: string;
   containerPrefix: string;
@@ -28,15 +27,16 @@ export interface AppConfig {
   masterImage: string;
   masterImageAddPkg: string;
   masterTag: string;
+  repoUrl: string;
   suspendMode: SuspendMode;
 }
 
 export interface ContainerStatus {
-  name: string;
+  active: boolean;
   branch: string;
   checkout?: string;
-  active: boolean;
   lastAccessed?: string;
+  name: string;
 }
 
 export interface StatusReport {
