@@ -4,9 +4,6 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 
-// Set the Docker socket path to the default value for the tests (e.g. for CI)
-process.env.DOCKER_SOCKET = '/var/run/docker.sock';
-
 describe('AppController', () => {
   let appController: AppController;
 

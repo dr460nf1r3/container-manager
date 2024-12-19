@@ -1,0 +1,7 @@
+DOCKER_SOCKET=/var/run/docker.sock
+CONFIG_CUSTOM_BUILD_SCRIPT=./test/build-script-test.sh
+CONFIG_REPO_URL=https://github.com/dr460nf1r3/dind-poc.git
+CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL=true
+CONFIG_MASTER_IMAGE_ADD_PKG="nano:micro"
+CONFIG_LOGLEVEL=debug
+CONFIG_IDLE_TIMEOUT=300

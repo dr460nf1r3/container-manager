@@ -31,7 +31,9 @@ jobs:
         run: pnpm install
 
       - name: Run tests
-        run: pnpm test
+        run: |
+          cp test/env .env
+          pnpm test
 
       - name: Lint
         run: pnpm lint
