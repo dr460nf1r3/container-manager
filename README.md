@@ -1,15 +1,24 @@
 ## Description
 
+![https://img.shields.io/docker/pulls/dr460nf1r3/container-manager.svg](https://img.shields.io/docker/pulls/dr460nf1r3/container-manager.svg)
+![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/dr460nf1r3/container-manager/main)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dr460nf1r3/container-manager/publish-backend.yml)
+![GitHub Tag](https://img.shields.io/github/v/tag/dr460nf1r3/container-manager)
+![GitHub License](https://img.shields.io/github/license/dr460nf1r3/container-manager)
+
 This is an application for managing Docker in Docker test environments.
 Specifically, it is used to manage the creation and deletion of per-branch Docker container hosts.
 Furthermore, it acts as proxy, routing to the correct container based on the subdomain of the request.
 If no request comes in for a certain amount of time, the container is automatically paused to save resources.
 Once it receives a request again, it is resumed.
 
+It works in connection with the [container-manager-dind](https://github.com/dr460nf1r3/container-manager-dind) image,
+although own images can be used as well.
+
 ## Features
 
-- Create and delete Docker containers (DinD) via GET or POST request
-- Automatically pause and resume containers based on request activity
+- Create and delete Docker containers hosts (DinD) via GET or POST request
+- Automatically suspend and resume containers based on request activity (either stop or pause)
 - Pull a specific repository upon container host creation and run a specific build script to set up a Compose file, used
   to set up the test environment
 - Proxy requests to the correct container based on the subdomain of the request
@@ -19,34 +28,36 @@ Once it receives a request again, it is resumed.
 ```yaml
 name: container-manager
 services:
-    container-manager:
-        container_name: container-manager
-        image: dr460nf1r3/container-manager:main
-        ports:
-            - "80:3000"
-        volumes:
-            - "/var/run/docker.sock:/var/run/docker.sock:rw"
-        environment:
-            CONFIG_CONTAINER_PREFIX: container-host
-            CONFIG_CUSTOM_BUILD_SCRIPT: ./ci/build-compose.sh
-            CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL: false
-            CONFIG_DIR_CONTAINER: /app/config
-            CONFIG_DIR_HOST: /var/lib/container-manager
-            CONFIG_HOSTNAME: localhost.local
-            CONFIG_IDLE_TIMEOUT: 60000
-            CONFIG_LOGLEVEL: info
-            CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
-            CONFIG_MASTER_IMAGE_TAG: main
-            CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
-            CONFIG_SUSPEND_MODE: stop
-            NODE_ENV: production
+  container-manager:
+    container_name: container-manager
+    image: dr460nf1r3/container-manager:main
+    ports:
+      - "80:3000"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+    environment:
+      CONFIG_CONTAINER_PREFIX: container-host
+      CONFIG_CUSTOM_BUILD_SCRIPT: ./ci/build-compose.sh
+      CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL: false
+      CONFIG_DIR_CONTAINER: /app/config
+      CONFIG_DIR_HOST: /var/lib/container-manager
+      CONFIG_HOSTNAME: localhost.local
+      CONFIG_IDLE_TIMEOUT: 60000
+      CONFIG_LOGLEVEL: info
+      CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
+      CONFIG_MASTER_IMAGE_TAG: main
+      CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
+      CONFIG_SUSPEND_MODE: stop
+      NODE_ENV: production
 ```
 
 ## Environment variables
 
 - `CONFIG_CONTAINER_PREFIX`: Prefix for container host names, prepended to the branch name
-- `CONFIG_CUSTOM_BUILD_SCRIPT`: Path to a custom build script that is executed after the repository is cloned, or the host when CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL is set to true
-- `CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL`: If set to true, the custom build script is copied from the host to the container and and executed here
+- `CONFIG_CUSTOM_BUILD_SCRIPT`: Path to a custom build script that is executed after the repository is cloned, or the
+  host when CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL is set to true
+- `CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL`: If set to true, the custom build script is copied from the host to the container
+  and and executed here
 - `CONFIG_DIR_CONTAINER`: Directory in the container where the config files are stored
 - `CONFIG_DIR_HOST`: Directory on the host where the per-branch directories are stored
 - `CONFIG_HOSTNAME`: Hostname of the container host
@@ -61,7 +72,8 @@ services:
 
 ## API documentation
 
-The Swagger API documentation can be found at `/api` when the application is running (e.g. [http://localhost/api](http://localhost/api)).
+The Swagger API documentation can be found at `/api` when the application is running (
+e.g. [http://localhost/api](http://localhost/api)).
 
 ## Project setup
 
