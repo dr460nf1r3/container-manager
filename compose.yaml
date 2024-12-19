@@ -1,23 +1,24 @@
+---
 name: container-manager
 services:
-    container-manager:
-        container_name: container-manager
-        image: dr460nf1r3/container-manager:main
-        ports:
-            - "80:3000"
-        volumes:
-            - "/var/run/docker.sock:/var/run/docker.sock:rw"
-        environment:
-            CONFIG_CONTAINER_PREFIX: container-host
-            CONFIG_CUSTOM_BUILD_SCRIPT: ./ci/build-compose.sh
-            CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL: false
-            CONFIG_DIR_CONTAINER: /app/config
-            CONFIG_DIR_HOST: /var/lib/container-manager
-            CONFIG_HOSTNAME: localhost.local
-            CONFIG_IDLE_TIMEOUT: 60000
-            CONFIG_LOGLEVEL: info
-            CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
-            CONFIG_MASTER_IMAGE_TAG: main
-            CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
-            CONFIG_SUSPEND_MODE: stop
-            NODE_ENV: production
+  container-manager:
+    container_name: container-manager
+    image: dr460nf1r3/container-manager:main
+    ports:
+      - '80:3000'
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock:rw'
+    environment:
+      CONFIG_CONTAINER_PREFIX: container-host
+      CONFIG_CUSTOM_BUILD_SCRIPT: ./ci/build-compose.sh
+      CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL: false
+      CONFIG_DIR_CONTAINER: /app/config
+      CONFIG_DIR_HOST: /var/lib/container-manager
+      CONFIG_HOSTNAME: localhost.local
+      CONFIG_IDLE_TIMEOUT: 60000
+      CONFIG_LOGLEVEL: info
+      CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
+      CONFIG_MASTER_IMAGE_TAG: main
+      CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
+      CONFIG_SUSPEND_MODE: stop
+      NODE_ENV: production

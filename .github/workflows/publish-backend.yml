@@ -1,12 +1,13 @@
+---
 name: ci
 on:
   schedule:
-    - cron: "0 10 * * *"
+    - cron: '0 10 * * *'
   push:
     branches:
-      - "**"
+      - '**'
     tags:
-      - "*.*.*"
+      - '*.*.*'
   pull_request:
 jobs:
   docker:
@@ -19,24 +20,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+        with:
+          extra-conf: |
+            accept-flake-config = true
+          diagnostic-endpoint: ''
+
+      - name: Run linters via nix flake check
+        run: nix flake check
+
       - name: Run tests
         run: |
           cp test/env .env
           pnpm test
-
-      - name: Lint
-        run: pnpm lint
 
       - name: Docker meta
         id: meta

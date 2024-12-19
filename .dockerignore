@@ -1,5 +1,8 @@
 /node_modules
 /dist
-test/env
 /.idea
+/.vscode
+/.devshell
+/.github
+/.run
 /test

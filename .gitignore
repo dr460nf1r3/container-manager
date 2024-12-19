@@ -56,6 +56,8 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # misc
+.direnv
+.pre-commit-config.yaml
 state.json
 /config
 /secrets

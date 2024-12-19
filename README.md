@@ -32,9 +32,9 @@ services:
     container_name: container-manager
     image: dr460nf1r3/container-manager:main
     ports:
-      - "80:3000"
+      - '80:3000'
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+      - '/var/run/docker.sock:/var/run/docker.sock:rw'
     environment:
       CONFIG_CONTAINER_PREFIX: container-host
       CONFIG_CUSTOM_BUILD_SCRIPT: ./ci/build-compose.sh

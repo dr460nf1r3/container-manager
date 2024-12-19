@@ -1,5 +1,7 @@
 # Add files here to ignore them from prettier formatting
 /dist
 /node_modules
+flake.lock
 pnpm-lock.yaml
+pre-commit-config.yaml
 state.json
