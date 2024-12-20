@@ -16,7 +16,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['**/.eslintrc.js', '.run/*', 'flake.lock', 'package.json', 'pnpm-lock.yaml'],
+    ignores: ['**/.eslintrc.mjs'],
   },
   ...compat.extends('plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'),
   {

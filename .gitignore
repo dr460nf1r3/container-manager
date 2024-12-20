@@ -60,4 +60,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .pre-commit-config.yaml
 state.json
 /config
+/data
 /secrets

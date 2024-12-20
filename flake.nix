@@ -51,6 +51,7 @@
               ${pkgs.pnpm}/bin/pnpm run lint
             '';
             name = "pnpm-lint";
+            pass_filenames = false;
           };
           prettier.enable = true;
           shellcheck.enable = true;
