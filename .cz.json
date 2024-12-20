@@ -1,6 +1,5 @@
 {
   "commitizen": {
-    "changelog_incremental": true,
     "gpg_sign": true,
     "name": "cz_conventional_commits",
     "tag_format": "$version",

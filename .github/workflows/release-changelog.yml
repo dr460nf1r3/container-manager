@@ -4,19 +4,58 @@ permissions:
   contents: write
 on:
   push:
+    branches: ['main']
     tags: ['*']
 jobs:
-  release:
-    if: startsWith(github.ref, 'refs/tags/')
+  changelog:
     runs-on: ubuntu-latest
     steps:
-      - name: Build Changelog
-        id: github_release
-        uses: mikepenz/release-changelog-builder-action@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release
-        uses: mikepenz/action-gh-release@v0.2.0-a03
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          body: ${{ steps.github_release.outputs.changelog }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+        with:
+          extra-conf: |
+            accept-flake-config = true
+          diagnostic-endpoint: ''
+
+      - name: Generate changelog
+        run: nix develop -c cz changelog --incremental
+
+      - name: Set Git User Info and pull eventual changes
+        run: |
+          git switch main
+          git pull --rebase
+          git config user.name 'Temeraire'
+          git config user.email 'actions@chaotic.cx'
+
+      - name: Commit Changelog
+        run: |
+          git add CHANGELOG.md
+          git commit -m "docs(CHANGELOG.md): update" || echo "No changes to commit"
+          git push origin HEAD:main
+
+      - name: Get only latest release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          nix develop -c cz changelog --dry-run > CHANGELOG.temp
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.temp
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
