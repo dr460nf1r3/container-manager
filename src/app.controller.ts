@@ -1,4 +1,4 @@
-import { Body, Controller, Get, InternalServerErrorException, Post, Query, Req, Res } from '@nestjs/common';
+import { All, Body, Controller, Get, InternalServerErrorException, Post, Query, Req, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AppHealth } from './constants';
@@ -23,18 +23,6 @@ export class AppController {
   @Cron(CronExpression.EVERY_MINUTE)
   async shutdownNonBusyContainers(): Promise<void> {
     await this.appService.shutdownNonBusyContainers();
-  }
-
-  @ApiResponse({ status: 302, description: 'Redirect to the deployed container host.' })
-  @ApiNotFoundResponse({ description: 'No container found with that name.' })
-  @SkipThrottle()
-  @Get()
-  async redirectToProxy(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {
-    const host: string = req.headers.host;
-    const targetIp: string = await this.appService.proxyRequest(host);
-
-    // noinspection HttpUrlsUsage - internal only, so it's fine in this case
-    res.status(302).redirect(`http://${targetIp}`);
   }
 
   @ApiBadRequestResponse({ description: 'The given parameters were not what we expect.' })
@@ -107,5 +95,17 @@ export class AppController {
 
     await this.appService.deleteContainer(query.branch);
     res.status(200).send();
+  }
+
+  @ApiResponse({ status: 302, description: 'Redirect to the deployed container host.' })
+  @ApiNotFoundResponse({ description: 'No container found with that name.' })
+  @SkipThrottle()
+  @All('*')
+  async redirectToProxy(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {
+    const host: string = req.headers.host;
+    const targetIp: string = await this.appService.proxyRequest(host);
+
+    // noinspection HttpUrlsUsage - internal only, so it's fine in this case
+    res.status(302).redirect(`http://${targetIp}`);
   }
 }
