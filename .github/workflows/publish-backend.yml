@@ -1,5 +1,5 @@
 ---
-name: ci
+name: 'Test and deploy container'
 on:
   schedule:
     - cron: '0 10 * * *'
@@ -82,7 +82,7 @@ jobs:
       - name: Run tests
         run: bash test/e2e.sh
 
-  docker:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -138,15 +138,21 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
 
+  scan:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: 'docker.io/dr460nf1r3/container-manager:${{ github.sha }}'
+          image-ref: 'docker.io/dr460nf1r3/container-manager:${{ github.ref_name }}'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          skip-dirs: '/root/.local/share/pnpm/store'
         env:
           TRIVY_SKIP_DB_UPDATE: true
           TRIVY_SKIP_JAVA_DB_UPDATE: true
+          TRIVY_DISABLE_VEX_NOTICE: true
