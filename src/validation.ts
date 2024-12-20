@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RunContainerDto {
@@ -25,6 +25,15 @@ export class RunContainerDto {
   @IsOptional()
   @IsString()
   public authUser: string;
+
+  @ApiProperty({
+    description: 'Whether the deployment should be kept active at all times, e.g. for cronjob tests - off by default',
+    example: 'true',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  public 'keep-active': boolean;
 }
 
 export class ContainerLogsDto {

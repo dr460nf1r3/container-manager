@@ -148,7 +148,7 @@ export class ContainerManager {
    * Creates a container host for a branch, which will be used to run Docker in Docker.
    * @param options The options for the container host, including the branch to create it for.
    */
-  private async createContainerHost(options: { branch: string; checkout: string }): Promise<ContainerConfig> {
+  private async createContainerHost(options: RunContainerDto): Promise<ContainerConfig> {
     Logger.log(`Creating container host for branch ${options.branch}`, 'ContainerManager/createContainerHost');
     let containerConfig: ContainerConfig;
 
@@ -192,7 +192,7 @@ export class ContainerManager {
         checkout: options.checkout ? options.checkout : options.branch,
         status: ContainerHostStatus.BUILDING,
         containerHost: containerHost,
-        keepActive: false,
+        keepActive: options['keep-active'] === true,
       };
       this.containers.push(containerConfig);
 
@@ -490,8 +490,8 @@ export class ContainerManager {
   async shutdownNonBusyContainers(): Promise<void> {
     const now = new Date();
     for (const containerConfig of this.containers) {
-      // Skip containerHost that are currently starting up
-      if (containerConfig.status === ContainerHostStatus.STARTING) {
+      // Skip containerHost that are currently starting up or explicitly excluded from shutting down
+      if (containerConfig.status === ContainerHostStatus.STARTING || containerConfig.keepActive) {
         continue;
       }
 
