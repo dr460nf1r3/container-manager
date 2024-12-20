@@ -6,7 +6,7 @@ cp test/env .env
 pnpm run build
 
 # Root is required to be able to delete data dir files, which are owned by root
-sudo pnpm run start:prod &
+sudo node dist/main.js &
 
 # Wait for the server to start
 sleep 5
