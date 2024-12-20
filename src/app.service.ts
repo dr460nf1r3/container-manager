@@ -4,7 +4,7 @@ import { Container, ContainerInspectInfo } from 'dockerode';
 import { ConfigService } from '@nestjs/config';
 import { AppHealth } from './constants';
 import { RunContainerDto } from './validation';
-import { StatusReport } from './interfaces';
+import { ContainerConfig, StatusReport } from './interfaces';
 import { HttpService } from '@nestjs/axios';
 
 @Injectable()
@@ -22,12 +22,12 @@ export class AppService {
    * Creates a new container host for the specified branch and commit.
    * @param options The branch and commit to deploy.
    */
-  async newDeployment(options: RunContainerDto): Promise<void> {
+  async newDeployment(options: RunContainerDto): Promise<ContainerConfig> {
     Logger.log(
-      `Running container with branch: ${options.branch}${options.branch ? ` and checkout option: ${options.checkout}` : ''}`,
+      `Running container with branch: ${options.branch}${options.checkout ? ` and checkout option: ${options.checkout}` : ''}`,
       'AppService/newDeployment',
     );
-    await this.manager.newDeployment(options);
+    return await this.manager.newDeployment(options);
   }
 
   /**

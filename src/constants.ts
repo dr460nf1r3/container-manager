@@ -5,3 +5,11 @@ export enum AppHealth {
   OK = 'OK',
   ERROR = 'ERROR',
 }
+
+export enum ContainerHostStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  BUILDING = 'BUILDING',
+  STARTING = 'STARTING',
+  SUSPENDING = 'SUSPENDING',
+}

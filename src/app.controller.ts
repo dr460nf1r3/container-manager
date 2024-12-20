@@ -5,7 +5,7 @@ import { AppHealth } from './constants';
 import { DeleteDeploymentDto, RunContainerDto } from './validation';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { SkipThrottle } from '@nestjs/throttler';
-import { StatusReport } from './interfaces';
+import { ContainerConfig, StatusReport } from './interfaces';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -49,7 +49,8 @@ export class AppController {
     if (!checkWhetherWeShouldAdmin(req)) {
       await this.redirectToProxy(req, res);
     }
-    return await this.appService.newDeployment(query);
+    const deployment: ContainerConfig = await this.appService.newDeployment(query);
+    res.status(201).send(deployment);
   }
 
   @ApiBadRequestResponse({ description: 'The given parameters were not what we expect.' })
@@ -64,7 +65,8 @@ export class AppController {
     if (!checkWhetherWeShouldAdmin(req)) {
       await this.redirectToProxy(req, res);
     }
-    return await this.appService.newDeployment(runContainerDto);
+    const deployment: ContainerConfig = await this.appService.newDeployment(runContainerDto);
+    res.status(201).send(deployment);
   }
 
   @ApiOkResponse({ description: 'The health of the application is okay.' })
@@ -82,12 +84,13 @@ export class AppController {
   @ApiOkResponse({ description: 'The status of the application.' })
   @ApiInternalServerErrorResponse({ description: 'An error occurred while retrieving the status of the application.' })
   @Get('status')
-  async getStatus(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<StatusReport> {
+  async getStatus(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {
     if (!checkWhetherWeShouldAdmin(req)) {
       await this.redirectToProxy(req, res);
     }
 
-    return this.appService.getStatus();
+    const status: StatusReport = await this.appService.getStatus();
+    res.status(200).send(status);
   }
 
   @ApiCreatedResponse({ description: 'The deployment has been deleted successfully.' })
@@ -102,6 +105,7 @@ export class AppController {
       await this.redirectToProxy(req, res);
     }
 
-    return await this.appService.deleteContainer(query.branch);
+    await this.appService.deleteContainer(query.branch);
+    res.status(200).send();
   }
 }

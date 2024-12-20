@@ -1,13 +1,15 @@
 import { Container } from 'dockerode';
+import { ContainerHostStatus } from './constants';
 
 export interface ContainerConfig {
-  active: boolean;
   branch: string;
   checkout: string;
-  containers: Container[];
+  containerHost: Container;
   image?: string;
+  keepActive?: boolean;
   lastAccessed?: number;
   shellPort?: number;
+  status: ContainerHostStatus;
 }
 
 export interface SaveFile {
@@ -22,6 +24,7 @@ export interface AppConfig {
   containerPrefix: string;
   customBuildScript: string;
   customBuildScriptLocal: boolean;
+  dataDirHost: string;
   hostname: string;
   idleTimeout: number;
   masterImage: string;

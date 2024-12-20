@@ -10,7 +10,7 @@ import Dockerode, {
 import { AppConfig, ContainerConfig, SaveFile, StatusReport } from './interfaces';
 import * as Stream from 'node:stream';
 import { Logger, NotFoundException } from '@nestjs/common';
-import { AppHealth, ONE_MINUTE, ONE_WEEK } from './constants';
+import { AppHealth, ContainerHostStatus, ONE_MINUTE, ONE_WEEK } from './constants';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
@@ -27,7 +27,6 @@ export class ContainerManager {
   pullActive: boolean = false;
   docker: Docker;
   initialized: boolean = false;
-  startingUp: string[] = [];
 
   constructor(
     private configService: ConfigService,
@@ -89,10 +88,10 @@ export class ContainerManager {
     }
     const active: boolean = inspect.State.Running;
     return {
-      active,
+      status: active ? ContainerHostStatus.ACTIVE : ContainerHostStatus.INACTIVE,
       branch,
       checkout,
-      containers: [container],
+      containerHost: container,
       image,
     };
   }
@@ -101,13 +100,14 @@ export class ContainerManager {
    * Deploys a new container for a branch.
    * @param options The options for the deployment, including the branch to deploy.
    */
-  async newDeployment(options: RunContainerDto): Promise<void> {
+  async newDeployment(options: RunContainerDto): Promise<ContainerConfig> {
     const containerInConfig: ContainerConfig = this.containers.find((container) =>
       container.branch.includes(options.branch),
     );
     const containerIsRunning: ContainerInfo = (await this.docker.listContainers({ all: true })).find((container) =>
       container.Names.includes(`/${this.config.containerPrefix}-${options.branch}`),
     );
+    let response: ContainerConfig;
 
     if (containerIsRunning && containerInConfig) {
       Logger.log(
@@ -124,34 +124,37 @@ export class ContainerManager {
       );
       this.containers.splice(containerIndex, 1);
 
-      await this.createContainerHost(options);
+      response = await this.createContainerHost(options);
     } else if (!containerInConfig && !containerIsRunning) {
       Logger.log(
         `Container host for branch ${options.branch} doesn't exist in config, creating a new one...`,
         'ContainerManager/newDeployment',
       );
-      await this.createContainerHost(options);
+      response = await this.createContainerHost(options);
     } else if (!containerInConfig && containerIsRunning) {
       Logger.log(
         `Container host for branch ${options.branch} does not exist in config but is already running, recreating...`,
         'ContainerManager/newDeployment',
       );
       await this.kill(this.docker.getContainer(containerIsRunning.Id));
-      await this.createContainerHost(options);
+      response = await this.createContainerHost(options);
     }
 
     await this.saveState();
+    return response;
   }
 
   /**
    * Creates a container host for a branch, which will be used to run Docker in Docker.
    * @param options The options for the container host, including the branch to create it for.
    */
-  private async createContainerHost(options: { branch: string; checkout: string }): Promise<void> {
+  private async createContainerHost(options: { branch: string; checkout: string }): Promise<ContainerConfig> {
     Logger.log(`Creating container host for branch ${options.branch}`, 'ContainerManager/createContainerHost');
+    let containerConfig: ContainerConfig;
 
     try {
       const configDirHost: string = join(process.cwd(), this.config.configDirHost, options.branch);
+      const dataDirHost: string = join(process.cwd(), this.config.dataDirHost, options.branch);
 
       if (!pathExists(configDirHost)) {
         Logger.debug(`Creating config directory for branch ${options.branch}`, 'ContainerManager/createContainerHost');
@@ -167,11 +170,11 @@ export class ContainerManager {
         await fs.writeFile(join(configDirHost, 'build.sh'), scriptContent);
       }
 
-      const masterContainer: Container = await this.create(
+      const containerHost: Container = await this.create(
         `${this.config.masterImage}:${this.config.masterTag}`,
         `${this.config.containerPrefix}-${options.branch}`,
         undefined,
-        [`${configDirHost}:${this.config.configDirContainer}`],
+        [`${configDirHost}:${this.config.configDirContainer}`, `${dataDirHost}:/var/lib/docker`],
         [
           `CI_BRANCH=${options.branch}`,
           `CI_BUILD_SCRIPT=${this.config.customBuildScriptLocal ? '/config/build.sh' : this.config.customBuildScript}`,
@@ -183,23 +186,27 @@ export class ContainerManager {
       );
 
       Logger.log(`Starting container host for branch ${options.branch}`, 'ContainerManager/createContainerHost');
-      await this.start(masterContainer);
+      await this.start(containerHost);
+      containerConfig = {
+        branch: options.branch,
+        checkout: options.checkout ? options.checkout : options.branch,
+        status: ContainerHostStatus.BUILDING,
+        containerHost: containerHost,
+        keepActive: false,
+      };
+      this.containers.push(containerConfig);
 
       // Wait for the container to start up, it'll die if anything doesn't add up
       Logger.debug(`Waiting for container to start up...`, 'ContainerManager/createContainerHost');
-      await new Promise<void>((resolve) => setTimeout(resolve, 2000));
-      await this.waitForContainerUp(masterContainer);
+      await this.waitForContainerUp(containerHost);
+      this.containers.find((containerConfig) => containerConfig.branch === options.branch).status =
+        ContainerHostStatus.ACTIVE;
 
-      this.containers.push({
-        branch: options.branch,
-        checkout: options.checkout ? options.checkout : options.branch,
-        active: true,
-        containers: [masterContainer],
-      });
       Logger.log(
         `Container host for branch ${options.branch} created successfully`,
         'ContainerManager/createContainerHost',
       );
+      return containerConfig;
     } catch (err: unknown) {
       Logger.error(err, 'ContainerManager/createContainerHost');
       throw err;
@@ -215,6 +222,7 @@ export class ContainerManager {
         containers: this.containers,
       };
       await fs.writeFile('state.json', JSON.stringify(toSave));
+      Logger.debug('Saved state', 'ContainerManager/saveState');
     } catch (err: unknown) {
       Logger.error(err, 'ContainerManager/saveState');
       throw err;
@@ -413,16 +421,9 @@ export class ContainerManager {
    * @param src The path to the Dockerfile-dind and other required files.
    * @param dockerfile The name of the Dockerfile-dind to use.
    * @param context The context to build the image in.
-   * @param tag The tag to apply to the image.
    * @returns An empty promise that resolves when the image is built.
    */
-  private async buildImage(
-    imageName: string,
-    src: string[],
-    context: string,
-    tag?: string,
-    dockerfile?: string,
-  ): Promise<void> {
+  private async buildImage(imageName: string, src: string[], context: string, dockerfile?: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const logStream: NodeJS.ReadableStream = await this.docker.buildImage(
         { context: context, src: src },
@@ -460,7 +461,7 @@ export class ContainerManager {
 
     try {
       const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
-      if (container && container.active) {
+      if (container && container.status === ContainerHostStatus.ACTIVE) {
         Logger.debug(`Container found among active containers...`, 'ContainerManager/accessContainer');
         container.lastAccessed = new Date().getTime();
         return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
@@ -470,7 +471,7 @@ export class ContainerManager {
         `Container not found for ${containerName}, searching inactive ones...`,
         'ContainerManager/accessContainer',
       );
-      if (container && !container.active) {
+      if (container && container.status !== ContainerHostStatus.ACTIVE) {
         Logger.debug(`Container found in inactive containers, starting...`, 'ContainerManager/accessContainer');
         return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
       }
@@ -484,22 +485,22 @@ export class ContainerManager {
   }
 
   /**
-   * Shuts down containers that are not busy.
+   * Shuts down containerHost that are not busy.
    */
   async shutdownNonBusyContainers(): Promise<void> {
     const now = new Date();
     for (const containerConfig of this.containers) {
-      // Skip containers that are currently starting up
-      if (this.startingUp.includes(`${this.config.containerPrefix}-${containerConfig.branch}`)) {
+      // Skip containerHost that are currently starting up
+      if (containerConfig.status === ContainerHostStatus.STARTING) {
         continue;
       }
 
       try {
         if (
-          (containerConfig.active &&
+          (containerConfig.status === ContainerHostStatus.ACTIVE &&
             containerConfig.lastAccessed &&
             now.getTime() - containerConfig.lastAccessed > ONE_MINUTE) ||
-          (containerConfig.active && !containerConfig.lastAccessed)
+          (containerConfig.status === ContainerHostStatus.ACTIVE && !containerConfig.lastAccessed)
         ) {
           Logger.log(
             `Shutting down container for branch ${containerConfig.branch}`,
@@ -509,6 +510,7 @@ export class ContainerManager {
             `${this.config.containerPrefix}-${containerConfig.branch}`,
             false,
           );
+          containerConfig.status = ContainerHostStatus.SUSPENDING;
 
           if (this.config.suspendMode === 'stop') {
             await runningContainer.stop({ t: 30 });
@@ -516,7 +518,7 @@ export class ContainerManager {
             await runningContainer.pause({ t: 10 });
           }
 
-          containerConfig.active = false;
+          containerConfig.status = ContainerHostStatus.INACTIVE;
         }
       } catch (err: unknown) {
         Logger.error(err, 'ContainerManager/shutdownNonBusyContainers');
@@ -533,6 +535,9 @@ export class ContainerManager {
   private async getContainer(containerName: string, start = false): Promise<Container> {
     const allContainers: ContainerInfo[] = await this.docker.listContainers({ all: true });
     const container: ContainerInfo = allContainers.find((container) => container.Names.includes(`/${containerName}`));
+    const containerConfig: ContainerConfig = this.containers.find(
+      (container) => `${this.config.containerPrefix}-${container.branch}` === containerName,
+    );
 
     if (container && container.State === 'running') {
       Logger.debug(`Running container ${containerName} found, returning...`, 'ContainerManager/getContainer');
@@ -540,7 +545,7 @@ export class ContainerManager {
     } else if (container && start) {
       Logger.debug(`Suspended container ${containerName} found, resuming...`, 'ContainerManager/getContainer');
       const inactiveContainer: Container = this.docker.getContainer(container.Id);
-      this.startingUp.push(containerName);
+      containerConfig.status = ContainerHostStatus.STARTING;
 
       if (this.config.suspendMode === 'stop') {
         await inactiveContainer.start();
@@ -549,7 +554,7 @@ export class ContainerManager {
       }
 
       await this.waitForContainerUp(inactiveContainer);
-      this.startingUp.splice(this.startingUp.indexOf(containerName), 1);
+      containerConfig.status = ContainerHostStatus.ACTIVE;
 
       return inactiveContainer;
     } else if (container) {
@@ -607,7 +612,7 @@ export class ContainerManager {
         name: container.branch,
         branch: container.branch,
         checkout: container.checkout,
-        active: container.active,
+        active: container.status === ContainerHostStatus.ACTIVE,
         lastAccessed: container.lastAccessed ? new Date(container.lastAccessed).toISOString() : undefined,
       });
     }
@@ -618,7 +623,7 @@ export class ContainerManager {
   /**
    * Waits for a container to be up (HTTP 200 on port 80).
    * Throws an error if it fails after five attempts.
-   * Especially useful for stopped containers that take a while to start up.
+   * Especially useful for stopped containerHost that takes a while to start up.
    * @param container The container to wait for.
    * @param attempt The attempt number.
    * @returns An empty promise that resolves when the container is up.
@@ -671,6 +676,7 @@ export class ContainerManager {
     await this.saveState();
 
     deleteIfExists(join(process.cwd(), this.config.configDirHost, name));
+    deleteIfExists(join(process.cwd(), this.config.dataDirHost, name));
     await this.docker.pruneContainers({ all: true });
 
     Logger.log(`Container for branch ${name} deleted`, 'ContainerManager/deleteContainer');
