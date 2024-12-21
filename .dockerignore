@@ -1,4 +1,6 @@
 /node_modules
+/config
+/data
 /dist
 /.idea
 /.vscode

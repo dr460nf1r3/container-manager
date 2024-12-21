@@ -7,19 +7,19 @@ import Dockerode, {
   ImageInfo,
   ImageInspectInfo,
 } from 'dockerode';
-import { AppConfig, ContainerConfig, SaveFile, StatusReport } from './interfaces';
 import * as Stream from 'node:stream';
 import { Logger, NotFoundException } from '@nestjs/common';
-import { AppHealth, ContainerHostStatus, ONE_MINUTE, ONE_WEEK } from './constants';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
-import { getConfig } from './config';
 import { RunContainerDto } from './validation';
-import { deleteIfExists, pathExists } from './functions';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
+import { AppConfig, ContainerConfig, SaveFile, StatusReport } from './interfaces';
+import { getConfig } from './config';
+import { AppHealth, ContainerHostStatus, ONE_WEEK } from './constants';
+import { deleteIfExists, pathExists } from './functions';
 
 export class ContainerManager {
   containers: ContainerConfig[] = [];
@@ -44,15 +44,15 @@ export class ContainerManager {
    * Initializes the container manager.
    */
   private async init(): Promise<void> {
+    this.config = getConfig(this.configService);
+
     const activeContainers: ContainerInfo[] = await this.docker.listContainers({
       all: true,
     });
-    await this.loadState();
-
     if (activeContainers) {
       const containerConfigs: PromiseSettledResult<ContainerConfig>[] = await Promise.allSettled(
         activeContainers.map(async (container) => {
-          if (container.State === 'running') {
+          if (container.Image.includes(this.config.masterImage)) {
             return await this.runningContainerToConfig(this.docker.getContainer(container.Id));
           }
         }),
@@ -64,10 +64,12 @@ export class ContainerManager {
       }
     }
 
-    this.config = getConfig(this.configService);
+    await this.loadState();
+    Logger.debug(this.containers, 'ContainerManager/init');
 
     await this.ensureMasterImage();
     void this.saveState();
+
     this.initialized = true;
   }
 
@@ -80,12 +82,9 @@ export class ContainerManager {
     const inspect: ContainerInspectInfo = await container.inspect();
     const [image] = inspect.Config.Image.split(':');
 
-    let branch: string;
-    let checkout: string;
-    if (inspect.Name.includes(`${this.config.containerPrefix}`)) {
-      branch = inspect.Config.Env.find((env) => env.startsWith('CI_BRANCH=')).split('=')[1];
-      checkout = inspect.Config.Env.find((env) => env.startsWith('CI_CHECKOUT=')).split('=')[1];
-    }
+    const branch: string = inspect.Config.Env.find((env) => env.startsWith('CI_BRANCH=')).split('=')[1];
+    const checkout: string = inspect.Config.Env.find((env) => env.startsWith('CI_CHECKOUT=')).split('=')[1];
+    const keepActive: string = inspect.Config.Env.find((env) => env.startsWith('CI_KEEP_ACTIVE=')).split('=')[1];
     const active: boolean = inspect.State.Running;
     return {
       status: active ? ContainerHostStatus.ACTIVE : ContainerHostStatus.INACTIVE,
@@ -93,6 +92,7 @@ export class ContainerManager {
       checkout,
       containerHost: container,
       image,
+      keepActive: keepActive === 'true',
     };
   }
 
@@ -102,7 +102,7 @@ export class ContainerManager {
    */
   async newDeployment(options: RunContainerDto): Promise<ContainerConfig> {
     const containerInConfig: ContainerConfig = this.containers.find((container) =>
-      container.branch.includes(options.branch),
+      container.branch?.includes(options.branch),
     );
     const containerIsRunning: ContainerInfo = (await this.docker.listContainers({ all: true })).find((container) =>
       container.Names.includes(`/${this.config.containerPrefix}-${options.branch}`),
@@ -153,8 +153,15 @@ export class ContainerManager {
     let containerConfig: ContainerConfig;
 
     try {
-      const configDirHost: string = join(process.cwd(), this.config.configDirHost, options.branch);
-      const dataDirHost: string = join(process.cwd(), this.config.dataDirHost, options.branch);
+      let configDirHost: string;
+      let dataDirHost: string;
+      if (this.config.isProd) {
+        configDirHost = join(this.config.configDirHost, options.branch);
+        dataDirHost = join(this.config.dataDirHost, options.branch);
+      } else {
+        configDirHost = join(process.cwd(), this.config.configDirHost, options.branch);
+        dataDirHost = join(process.cwd(), this.config.dataDirHost, options.branch);
+      }
 
       if (!pathExists(configDirHost)) {
         Logger.debug(`Creating config directory for branch ${options.branch}`, 'ContainerManager/createContainerHost');
@@ -176,13 +183,17 @@ export class ContainerManager {
         undefined,
         [`${configDirHost}:${this.config.configDirContainer}`, `${dataDirHost}:/var/lib/docker`],
         [
-          `CI_BRANCH=${options.branch}`,
-          `CI_BUILD_SCRIPT=${this.config.customBuildScriptLocal ? '/config/build.sh' : this.config.customBuildScript}`,
-          `CI_CHECKOUT=${options.checkout ? options.checkout : options.branch}`,
-          `CI_REPO_URL=${this.config.repoUrl}`,
           `CI_ADD_PACKAGES=${this.config.masterImageAddPkg}`,
+          `CI_BRANCH=${options.branch}`,
+          `CI_BUILD_SCRIPT=${this.config.customBuildScriptLocal ? `${this.config.configDirContainer}/build.sh` : this.config.customBuildScript}`,
+          `CI_CHECKOUT=${options.checkout ? options.checkout : options.branch}`,
+          `CI_KEEP_ACTIVE=${options['keep-active'] === true}`,
+          `CI_REPO_URL=${this.config.repoUrl}`,
         ],
-        { Privileged: true },
+        {
+          Privileged: true,
+          NetworkMode: this.config.isProd ? this.config.dockerNetworkName : undefined,
+        },
       );
 
       Logger.log(`Starting container host for branch ${options.branch}`, 'ContainerManager/createContainerHost');
@@ -190,9 +201,10 @@ export class ContainerManager {
       containerConfig = {
         branch: options.branch,
         checkout: options.checkout ? options.checkout : options.branch,
-        status: ContainerHostStatus.BUILDING,
         containerHost: containerHost,
         keepActive: options['keep-active'] === true,
+        lastAccessed: new Date().getTime(),
+        status: ContainerHostStatus.BUILDING,
       };
       this.containers.push(containerConfig);
 
@@ -221,7 +233,7 @@ export class ContainerManager {
       const toSave: SaveFile = {
         containers: this.containers,
       };
-      await fs.writeFile('state.json', JSON.stringify(toSave));
+      await fs.writeFile(this.getConfigPath(), JSON.stringify(toSave));
       Logger.debug('Saved state', 'ContainerManager/saveState');
     } catch (err: unknown) {
       Logger.error(err, 'ContainerManager/saveState');
@@ -234,9 +246,17 @@ export class ContainerManager {
    */
   private async loadState(): Promise<void> {
     try {
-      const state: string = await fs.readFile('state.json', 'utf-8');
+      const state: string = await fs.readFile(this.getConfigPath(), 'utf-8');
       const parsed: SaveFile = JSON.parse(state.toString());
-      this.containers = parsed.containers;
+
+      for (const config of parsed.containers) {
+        const runningContainer: ContainerConfig = this.containers.find(
+          (container) => config.branch === container.branch,
+        );
+        if (runningContainer) {
+          this.containers[this.containers.indexOf(runningContainer)] = config;
+        }
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err: unknown) {
@@ -463,17 +483,31 @@ export class ContainerManager {
       const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
       if (container && container.status === ContainerHostStatus.ACTIVE) {
         Logger.debug(`Container found among active containers...`, 'ContainerManager/accessContainer');
+
         container.lastAccessed = new Date().getTime();
         return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
-      }
-
-      Logger.debug(
-        `Container not found for ${containerName}, searching inactive ones...`,
-        'ContainerManager/accessContainer',
-      );
-      if (container && container.status !== ContainerHostStatus.ACTIVE) {
+      } else if (container && container.status === ContainerHostStatus.INACTIVE) {
         Logger.debug(`Container found in inactive containers, starting...`, 'ContainerManager/accessContainer');
+
+        container.lastAccessed = new Date().getTime();
         return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
+      } else if (
+        (container && container.status === ContainerHostStatus.SUSPENDING) ||
+        container.status === ContainerHostStatus.STARTING
+      ) {
+        Logger.debug(
+          `Container found in suspending or starting state, waiting for another state...`,
+          'ContainerManager/accessContainer',
+        );
+
+        while (
+          container.status === ContainerHostStatus.SUSPENDING ||
+          container.status === ContainerHostStatus.STARTING ||
+          container.status === ContainerHostStatus.BUILDING
+        ) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 500));
+        }
+        return await this.accessContainer(host);
       }
     } catch (err: unknown) {
       Logger.error(err, 'ContainerManager/accessContainer');
@@ -491,7 +525,14 @@ export class ContainerManager {
     const now = new Date();
     for (const containerConfig of this.containers) {
       // Skip containerHost that are currently starting up or explicitly excluded from shutting down
-      if (containerConfig.status === ContainerHostStatus.STARTING || containerConfig.keepActive) {
+      if (
+        containerConfig.status === (ContainerHostStatus.STARTING || ContainerHostStatus.SUSPENDING) ||
+        containerConfig.keepActive
+      ) {
+        Logger.debug(
+          `Skipping container for branch ${containerConfig.branch} because of non-matching state`,
+          'ContainerManager/shutdownNonBusyContainers',
+        );
         continue;
       }
 
@@ -499,7 +540,7 @@ export class ContainerManager {
         if (
           (containerConfig.status === ContainerHostStatus.ACTIVE &&
             containerConfig.lastAccessed &&
-            now.getTime() - containerConfig.lastAccessed > ONE_MINUTE) ||
+            now.getTime() - containerConfig.lastAccessed > this.config.idleTimeout) ||
           (containerConfig.status === ContainerHostStatus.ACTIVE && !containerConfig.lastAccessed)
         ) {
           Logger.log(
@@ -630,27 +671,36 @@ export class ContainerManager {
    */
   async waitForContainerUp(container: Container, attempt = 1): Promise<void> {
     const stats: ContainerInspectInfo = await container.inspect();
-    const targetIp: string = stats.NetworkSettings.IPAddress;
-    let connectionRefused = false;
-    let outcome: AxiosResponse<string>;
+    let targetIp: string;
+    let retry = false;
 
-    try {
-      // noinspection HttpUrlsUsage - internal only, so it's fine in this case
-      outcome = await lastValueFrom(this.httpService.get(`http://${targetIp}`));
+    if (this.config.isProd) {
+      targetIp = stats.NetworkSettings.Networks[this.config.dockerNetworkName].IPAddress;
+      let connectionRefused = false;
+      let outcome: AxiosResponse<string>;
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err: unknown) {
-      connectionRefused = true;
+      try {
+        // noinspection HttpUrlsUsage - internal only, so it's fine in this case
+        outcome = await lastValueFrom(this.httpService.get(`http://${targetIp}`));
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (err: unknown) {
+        connectionRefused = true;
+      }
+      if (connectionRefused || outcome?.status !== 200) {
+        retry = true;
+      }
+    } else {
+      retry = stats.State.Health.Status === 'starting';
     }
 
-    if (outcome?.status !== 200 || connectionRefused) {
-      if (attempt > 50) {
-        throw new Error(
-          `Failed to connect to container after ${(100 * 50) / 1000} seconds, it likely died: ${outcome.statusText}`,
-        );
-      }
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
-      await this.waitForContainerUp(container, attempt++);
+    if (retry && attempt > 50) {
+      throw new Error(`Failed to connect to container after ${(1000 * 50) / 1000} seconds, it likely died`);
+    }
+
+    if (retry) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+      await this.waitForContainerUp(container, attempt + 1);
     } else {
       Logger.log(`Container ${container.id} is up`, 'ContainerManager/waitForContainerUp');
     }
@@ -675,10 +725,21 @@ export class ContainerManager {
     this.containers.splice(containerIndex, 1);
     await this.saveState();
 
-    deleteIfExists(join(process.cwd(), this.config.configDirHost, name));
-    deleteIfExists(join(process.cwd(), this.config.dataDirHost, name));
+    deleteIfExists(join(this.config.configDirHost, name));
+    deleteIfExists(join(this.config.dataDirHost, name));
     await this.docker.pruneContainers({ all: true });
 
     Logger.log(`Container for branch ${name} deleted`, 'ContainerManager/deleteContainer');
+  }
+
+  private getConfigPath(): string {
+    let configPath: string;
+    if (this.config.isProd) {
+      configPath = join(this.config.configDirHost, 'state.json');
+    } else {
+      configPath = join(process.cwd(), this.config.configDirHost, 'state.json');
+    }
+
+    return configPath;
   }
 }

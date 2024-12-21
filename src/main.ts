@@ -5,9 +5,13 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import helmet from '@fastify/helmet';
 import { provideSwagger } from './api/setup-swagger';
 import { initLoglevel } from './functions';
+import { fastifyReplyFrom } from '@fastify/reply-from';
 
 async function bootstrap(): Promise<void> {
-  const app: NestFastifyApplication = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  const app: NestFastifyApplication = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ logger: true }),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -19,6 +23,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
   await app.register(helmet);
+  await app.register(fastifyReplyFrom);
 
   provideSwagger(app);
   initLoglevel(process.env.CONFIG_LOGLEVEL ?? 'log');

@@ -43,7 +43,12 @@ export class AppService {
       throw new NotFoundException();
     }
     const stats: ContainerInspectInfo = await container.inspect();
-    return stats.NetworkSettings.IPAddress;
+
+    if (this.manager.config.isProd) {
+      return stats.NetworkSettings.Networks[this.manager.config.dockerNetworkName].IPAddress;
+    } else {
+      return stats.NetworkSettings.IPAddress;
+    }
   }
 
   /**

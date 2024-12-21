@@ -8,17 +8,29 @@ services:
       - '80:3000'
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock:rw'
+      - '/home/nico/Documents/misc/container-manager:/home/nico/Documents/misc/container-manager:rw'
     environment:
       CONFIG_CONTAINER_PREFIX: container-host
-      CONFIG_CUSTOM_BUILD_SCRIPT: ./ci/build-compose.sh
-      CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL: false
-      CONFIG_DIR_CONTAINER: /app/config
-      CONFIG_DIR_HOST: /var/lib/container-manager
+      CONFIG_CONTAINER_MANAGER_NAME: container-manager
+      CONFIG_CUSTOM_BUILD_SCRIPT: /home/nico/Documents/misc/container-manager/test/build-script-test.sh
+      CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL: true
+      CONFIG_DATA_DIR_HOST: /home/nico/Documents/misc/container-manager/data
+      CONFIG_DIR_CONTAINER: /config
+      CONFIG_DIR_HOST: /home/nico/Documents/misc/container-manager/config
       CONFIG_HOSTNAME: localhost.local
       CONFIG_IDLE_TIMEOUT: 60000
-      CONFIG_LOGLEVEL: info
+      CONFIG_LOGLEVEL: debug
       CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
       CONFIG_MASTER_IMAGE_TAG: main
       CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
       CONFIG_SUSPEND_MODE: stop
+      DOCKER_SOCKET: /var/run/docker.sock
       NODE_ENV: production
+    networks:
+      - container-manager
+
+networks:
+  container-manager:
+    attachable: true
+    driver: bridge
+    name: container-manager

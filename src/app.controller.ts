@@ -1,10 +1,20 @@
-import { All, Body, Controller, Get, InternalServerErrorException, Post, Query, Req, Res } from '@nestjs/common';
+import {
+  All,
+  Body,
+  Controller,
+  Get,
+  InternalServerErrorException,
+  Logger,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AppHealth } from './constants';
 import { DeleteDeploymentDto, RunContainerDto } from './validation';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { SkipThrottle } from '@nestjs/throttler';
 import { ContainerConfig, StatusReport } from './interfaces';
 import {
   ApiBadRequestResponse,
@@ -36,6 +46,7 @@ export class AppController {
   ): Promise<void> {
     if (!checkWhetherWeShouldAdmin(req)) {
       await this.redirectToProxy(req, res);
+      return;
     }
     const deployment: ContainerConfig = await this.appService.newDeployment(query);
     res.status(201).send(deployment);
@@ -52,6 +63,7 @@ export class AppController {
   ): Promise<void> {
     if (!checkWhetherWeShouldAdmin(req)) {
       await this.redirectToProxy(req, res);
+      return;
     }
     const deployment: ContainerConfig = await this.appService.newDeployment(runContainerDto);
     res.status(201).send(deployment);
@@ -75,6 +87,7 @@ export class AppController {
   async getStatus(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {
     if (!checkWhetherWeShouldAdmin(req)) {
       await this.redirectToProxy(req, res);
+      return;
     }
 
     const status: StatusReport = await this.appService.getStatus();
@@ -91,21 +104,22 @@ export class AppController {
   ): Promise<void> {
     if (!checkWhetherWeShouldAdmin(req)) {
       await this.redirectToProxy(req, res);
+      return;
     }
 
     await this.appService.deleteContainer(query.branch);
-    res.status(200).send();
+    res.status(201).send();
   }
 
-  @ApiResponse({ status: 302, description: 'Redirect to the deployed container host.' })
+  @ApiResponse({ status: 200, description: 'Proxy the request to the deployed container host.' })
   @ApiNotFoundResponse({ description: 'No container found with that name.' })
-  @SkipThrottle()
   @All('*')
   async redirectToProxy(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {
     const host: string = req.headers.host;
     const targetIp: string = await this.appService.proxyRequest(host);
+    Logger.debug(`Redirecting request to ${targetIp}`);
 
     // noinspection HttpUrlsUsage - internal only, so it's fine in this case
-    res.status(302).redirect(`http://${targetIp}`);
+    res.from(`http://${targetIp}`);
   }
 }

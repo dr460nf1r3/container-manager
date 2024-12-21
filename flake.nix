@@ -83,7 +83,15 @@
           ];
           devshell.startup.preCommitHooks.text = ''
             ${self.checks.${system}.pre-commit-check.shellHook}
-            pnpm install
+
+            if [ ! -d node_modules ]; then
+              ${pkgs.pnpm}/bin/pnpm install
+            else
+              outcome=$(${pkgs.pnpm}/bin/pnpm install)
+              if  [[ !  "$outcome" =~ "Lockfile is up to date" ]]; then
+                echo "Dependencies have been updated"
+              fi
+            fi
           '';
           env = [
             {
