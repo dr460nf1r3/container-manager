@@ -21,12 +21,15 @@ export type SuspendMode = 'stop' | 'pause';
 export interface AppConfig {
   configDirContainer: string;
   configDirHost: string;
+  containerManagerName: string;
   containerPrefix: string;
   customBuildScript: string;
   customBuildScriptLocal: boolean;
   dataDirHost: string;
+  dockerNetworkName: string;
   hostname: string;
   idleTimeout: number;
+  isProd: boolean;
   masterImage: string;
   masterImageAddPkg: string;
   masterTag: string;
