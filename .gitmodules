@@ -1,0 +1,3 @@
+[submodule "dind-image"]
+	path = dind-image
+	url = https://github.com/dr460nf1r3/container-manager-dind
