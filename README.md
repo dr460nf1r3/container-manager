@@ -118,8 +118,236 @@ If the secret is not set, the routes are available without authentication.
 
 ## API documentation
 
-The Swagger API documentation can be found at `/api` when the application is running (
-e.g. [http://localhost/api](http://localhost/api)).
+The Swagger API documentation can be found at `/api` when the application is running
+(e.g. [http://localhost/api](http://localhost/api)).
+
+### Current routes
+
+#### Path Table
+
+| Method  | Path                  | Description |
+| ------- | --------------------- | ----------- |
+| GET     | [/run](#getrun)       |             |
+| POST    | [/run](#postrun)      |             |
+| GET     | [/health](#gethealth) |             |
+| GET     | [/status](#getstatus) |             |
+| GET     | [/delete](#getdelete) |             |
+| GET     | [/\*](#get)           |             |
+| POST    | [/\*](#post)          |             |
+| PUT     | [/\*](#put)           |             |
+| DELETE  | [/\*](#delete)        |             |
+| PATCH   | [/\*](#patch)         |             |
+| OPTIONS | [/\*](#options)       |             |
+| HEAD    | [/\*](#head)          |             |
+| SEARCH  | [/\*](#search)        |             |
+
+#### Reference Table
+
+| Name            | Path                                                                      | Description |
+| --------------- | ------------------------------------------------------------------------- | ----------- |
+| RunContainerDto | [#/components/schemas/RunContainerDto](#componentsschemasruncontainerdto) |             |
+
+#### Path Details
+
+---
+
+##### [GET]/run
+
+###### Parameters(Query)
+
+```ts
+branch: string;
+```
+
+```ts
+checkout: string; // optional
+```
+
+```ts
+authToken: string; // optional
+```
+
+```ts
+authUser: string; // optional
+```
+
+```ts
+keepActive: boolean; // optional
+```
+
+###### Responses
+
+- 201 The deployment has been created successfully.
+
+- 400 The given parameters were not what we expect.
+
+- 500 An error occurred while creating the deployment.
+
+---
+
+##### [POST]/run
+
+###### RequestBody
+
+- application/json
+
+```ts
+{
+  // The branch this deployment corresponds to
+  branch: string;
+  // Whether to checkout a tag or commit hash
+  checkout: string; // optional
+  // The username to authenticate with, if required
+  authToken: string; // optional
+  // The API token to use while cloning the repository, if required
+  authUser: string; // optional
+  // Whether the deployment should be kept active at all times, e.g. for cronjob tests - off by default
+  keepActive: boolean; // optional
+}
+```
+
+###### Responses
+
+- 201 The deployment has been created successfully.
+
+- 400 The given parameters were not what we expect.
+
+- 500 An error occurred while creating the deployment.
+
+---
+
+##### [GET]/health
+
+###### Responses
+
+- 200 The health of the application is okay.
+
+- 500 The app is unhealthy.
+
+---
+
+##### [GET]/status
+
+###### Responses
+
+- 200 The status of the application.
+
+- 500 An error occurred while retrieving the status of the application.
+
+---
+
+##### [GET]/delete
+
+###### Parameters(Query)
+
+```ts
+branch: string;
+```
+
+###### Responses
+
+- 201 The deployment has been deleted successfully.
+
+- 404 No deployment found with that name.
+
+---
+
+##### [GET]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+---
+
+##### [POST]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+---
+
+##### [PUT]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+---
+
+##### [DELETE]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+---
+
+### [PATCH]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+---
+
+##### [OPTIONS]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+---
+
+##### [HEAD]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+---
+
+##### [SEARCH]/\*
+
+###### Responses
+
+- 200 Proxy the request to the deployed container host.
+
+- 404 No container found with that name.
+
+## References
+
+### #/components/schemas/RunContainerDto
+
+```ts
+{
+  // The branch this deployment corresponds to
+  branch: string;
+  // Whether to checkout a tag or commit hash
+  checkout ? : string;
+  // The username to authenticate with, if required
+  authToken ? : string;
+  // The API token to use while cloning the repository, if required
+  authUser ? : string;
+  // Whether the deployment should be kept active at all times, e.g. for cronjob tests - off by default
+  keepActive ? : boolean;
+}
+```
 
 ## Eventually planned features
 
