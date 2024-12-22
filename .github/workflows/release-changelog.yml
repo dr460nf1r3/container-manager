@@ -48,7 +48,7 @@ jobs:
         run: |
           git add CHANGELOG.md
           git commit -m "docs(CHANGELOG.md): update" || echo "No changes to commit"
-          git push origin HEAD:main
+          git push origin HEAD:main || git pull --rebase && git push origin HEAD:main
 
       - name: Get only latest release notes
         if: startsWith(github.ref, 'refs/tags/')

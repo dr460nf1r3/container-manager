@@ -8,6 +8,7 @@ FAILURES=()
 echo "Setting up test environment..."
 sudo mkdir -p /var/lib/container-manager
 sudo cp -r ./test /var/lib/container-manager
+sudo docker network create container-manager &>/dev/null || true
 
 # Run the server in production mode
 docker build . -t dr460nf1r3/container-manager:main
