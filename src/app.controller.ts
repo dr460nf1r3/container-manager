@@ -111,7 +111,7 @@ export class AppController {
     res.status(201).send();
   }
 
-  @ApiResponse({ status: 200, description: 'Proxy the request to the deployed container host.' })
+  @ApiOkResponse({ description: 'Proxy the request to the deployed container host.' })
   @ApiNotFoundResponse({ description: 'No container found with that name.' })
   @All('*')
   async redirectToProxy(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {

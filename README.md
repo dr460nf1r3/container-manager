@@ -3,6 +3,7 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dr460nf1r3/container-manager/publish-backend.yml)
 ![GitHub Tag](https://img.shields.io/github/v/tag/dr460nf1r3/container-manager)
 ![GitHub License](https://img.shields.io/github/license/dr460nf1r3/container-manager)
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
 This is an application for managing Docker in Docker test environments.
 Specifically, it is used to manage the creation and deletion of per-branch Docker container hosts.

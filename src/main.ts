@@ -22,7 +22,7 @@ async function bootstrap(): Promise<void> {
   await app.register(helmet);
   await app.register(fastifyReplyFrom);
 
-  provideSwagger(app);
+  await provideSwagger(app, process.env.SWAGGER_JSON === 'true');
   initLoglevel(process.env.CONFIG_LOGLEVEL ?? 'log');
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');

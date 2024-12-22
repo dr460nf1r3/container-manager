@@ -1,0 +1,8 @@
+{
+  "name": "Container Manager docs",
+  "output": "docs/out",
+  "theme": "material",
+  "hideGenerator": true,
+  "tsconfig": "tsconfig.doc.json",
+  "includes": "docs"
+}

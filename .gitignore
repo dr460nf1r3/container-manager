@@ -1,7 +1,10 @@
 # compiled output
 /dist
+/docs/out
 /node_modules
 /build
+api.md
+swagger.json
 
 # Logs
 logs
