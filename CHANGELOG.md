@@ -1,4 +1,8 @@
-## Unreleased
+## 1.2.0 (2024-12-22)
+
+### Fix
+
+- handle sigterm nicely in container hosts, create network manually, restore missing containers
 
 ## 1.1.0 (2024-12-22)
 
