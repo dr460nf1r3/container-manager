@@ -7,6 +7,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "build": "nest build",
+    "changelog:latest": "node assets/extract-changelog.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
