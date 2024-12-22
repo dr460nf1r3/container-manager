@@ -17,7 +17,7 @@
     "test-e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@fastify/helmet": "^11.1.1",
+    "@fastify/helmet": "^13.0.0",
     "@fastify/reply-from": "^10.0.0",
     "@fastify/static": "^7.0.4",
     "@nestjs/axios": "^3.1.3",
