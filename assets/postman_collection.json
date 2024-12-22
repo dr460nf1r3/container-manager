@@ -17,10 +17,9 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:3000/delete?branch=main",
+          "raw": "http://localhost/delete?branch=main",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
           "path": ["delete"],
           "query": [
             {
@@ -44,10 +43,9 @@
           }
         ],
         "url": {
-          "raw": "http://main.localhost:3000",
+          "raw": "http://main.localhost",
           "protocol": "http",
-          "host": ["main", "localhost"],
-          "port": "3000"
+          "host": ["main", "localhost"]
         }
       },
       "response": []
@@ -63,10 +61,9 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:3000/run?branch=main",
+          "raw": "http://localhost/run?branch=main",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
           "path": ["run"],
           "query": [
             {
@@ -89,10 +86,9 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:3000/status",
+          "raw": "http://localhost/status",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
           "path": ["status"]
         }
       },
@@ -109,17 +105,16 @@
           }
         ],
         "url": {
-          "raw": "http://localhost:3000/health",
+          "raw": "http://localhost/health",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
           "path": ["health"]
         }
       },
       "response": []
     },
     {
-      "name": "Run",
+      "name": "Run (keep active)",
       "request": {
         "method": "POST",
         "header": [
@@ -138,10 +133,9 @@
           }
         },
         "url": {
-          "raw": "http://localhost:3000/run",
+          "raw": "http://localhost/run",
           "protocol": "http",
           "host": ["localhost"],
-          "port": "3000",
           "path": ["run"]
         }
       },

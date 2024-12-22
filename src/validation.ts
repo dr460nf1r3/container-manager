@@ -33,7 +33,7 @@ export class RunContainerDto {
   })
   @IsOptional()
   @IsBoolean()
-  public 'keep-active': boolean;
+  public keepActive: boolean;
 }
 
 export class ContainerLogsDto {

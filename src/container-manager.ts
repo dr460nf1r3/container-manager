@@ -41,71 +41,6 @@ export class ContainerManager {
   }
 
   /**
-   * Initializes the container manager.
-   */
-  private async init(): Promise<void> {
-    this.config = getConfig(this.configService);
-
-    const activeContainers: ContainerInfo[] = await this.docker.listContainers({
-      all: true,
-    });
-    if (activeContainers) {
-      const containerConfigs: PromiseSettledResult<ContainerConfig>[] = await Promise.allSettled(
-        activeContainers.map(async (container) => {
-          if (container.Image.includes(this.config.masterImage)) {
-            return await this.runningContainerToConfig(this.docker.getContainer(container.Id));
-          }
-        }),
-      );
-      for (const containerConfig of containerConfigs) {
-        if (containerConfig.status === 'fulfilled' && containerConfig.value !== undefined) {
-          this.containers.push(containerConfig.value);
-        }
-      }
-    }
-
-    if (!pathExists(this.config.configDirHost)) {
-      await fs.mkdir(this.config.configDirHost, { recursive: true });
-      Logger.debug(`Created config directory at ${this.config.configDirHost}`, 'ContainerManager/init');
-    }
-    if (!pathExists(this.config.dataDirHost)) {
-      await fs.mkdir(this.config.dataDirHost, { recursive: true });
-      Logger.debug(`Created data directory at ${this.config.dataDirHost}`, 'ContainerManager/init');
-    }
-
-    await this.loadState();
-    Logger.debug(this.containers, 'ContainerManager/init');
-
-    await this.ensureMasterImage();
-    void this.saveState();
-
-    this.initialized = true;
-  }
-
-  /**
-   * Converts a running container to a ContainerConfig object.
-   * @param container The container to convert.
-   * @returns The ContainerConfig object.
-   */
-  private async runningContainerToConfig(container: Dockerode.Container): Promise<ContainerConfig> {
-    const inspect: ContainerInspectInfo = await container.inspect();
-    const [image] = inspect.Config.Image.split(':');
-
-    const branch: string = inspect.Config.Env.find((env) => env.startsWith('CI_BRANCH=')).split('=')[1];
-    const checkout: string = inspect.Config.Env.find((env) => env.startsWith('CI_CHECKOUT=')).split('=')[1];
-    const keepActive: string = inspect.Config.Env.find((env) => env.startsWith('CI_KEEP_ACTIVE=')).split('=')[1];
-    const active: boolean = inspect.State.Running;
-    return {
-      status: active ? ContainerHostStatus.ACTIVE : ContainerHostStatus.INACTIVE,
-      branch,
-      checkout,
-      containerHost: container,
-      image,
-      keepActive: keepActive === 'true',
-    };
-  }
-
-  /**
    * Deploys a new container for a branch.
    * @param options The options for the deployment, including the branch to deploy.
    */
@@ -151,6 +86,225 @@ export class ContainerManager {
 
     await this.saveState();
     return response;
+  }
+
+  /**
+   * Accesses a container via a subdomain. To be called from the proxy.
+   * @param host The host to access the container for.
+   * @returns The container to access.
+   */
+  async accessContainer(host: string): Promise<Container> {
+    const containerName: string = host.split('.')[0];
+    const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
+
+    Logger.debug(`Accessing container via subdomain ${containerName}`, 'ContainerManager/accessContainer');
+    if (!container) throw new NotFoundException();
+
+    try {
+      if (container && container.status === ContainerHostStatus.ACTIVE) {
+        Logger.debug(`Container found among active containers...`, 'ContainerManager/accessContainer');
+
+        container.lastAccessed = new Date().getTime();
+        return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
+      } else if (container && container.status === ContainerHostStatus.INACTIVE) {
+        Logger.debug(`Container found in inactive containers, starting...`, 'ContainerManager/accessContainer');
+
+        container.lastAccessed = new Date().getTime();
+        return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
+      } else if (dontTouchContainer(container.status)) {
+        Logger.debug(
+          `Container found in suspending or starting state, waiting for another state...`,
+          'ContainerManager/accessContainer',
+        );
+
+        while (dontTouchContainer(container.status)) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 500));
+        }
+        return await this.accessContainer(host);
+      }
+    } catch (err: unknown) {
+      Logger.error(err, 'ContainerManager/accessContainer');
+      throw err;
+    }
+  }
+
+  /**
+   * Shuts down containerHost that are not busy.
+   */
+  async shutdownNonBusyContainers(): Promise<void> {
+    const now = new Date();
+    for (const containerConfig of this.containers) {
+      // Skip containerHost that are currently starting up or explicitly excluded from shutting down
+      if (dontTouchContainer(containerConfig.status) || containerConfig.keepActive) {
+        Logger.debug(
+          `Skipping container for branch ${containerConfig.branch} because of non-matching state`,
+          'ContainerManager/shutdownNonBusyContainers',
+        );
+        continue;
+      }
+
+      try {
+        if (
+          (containerConfig.status === ContainerHostStatus.ACTIVE &&
+            containerConfig.lastAccessed &&
+            now.getTime() - containerConfig.lastAccessed > this.config.idleTimeout) ||
+          (containerConfig.status === ContainerHostStatus.ACTIVE && !containerConfig.lastAccessed)
+        ) {
+          Logger.log(
+            `Shutting down container for branch ${containerConfig.branch}`,
+            'ContainerManager/shutdownNonBusyContainers',
+          );
+          const runningContainer: Container = await this.getContainer(
+            `${this.config.containerPrefix}-${containerConfig.branch}`,
+            false,
+          );
+          containerConfig.status = ContainerHostStatus.SUSPENDING;
+
+          if (this.config.suspendMode === 'stop') {
+            await runningContainer.stop({ t: 30 });
+          } else if (this.config.suspendMode === 'pause') {
+            await runningContainer.pause({ t: 10 });
+          }
+
+          containerConfig.status = ContainerHostStatus.INACTIVE;
+        }
+      } catch (err: unknown) {
+        Logger.error(err, 'ContainerManager/shutdownNonBusyContainers');
+      }
+    }
+  }
+
+  /**
+   * Checks the health of the container manager.
+   * @returns The health status of the container manager (OK or NOT OK).
+   */
+  async checkHealth(): Promise<AppHealth> {
+    let dockerOk: AppHealth = AppHealth.ERROR;
+    try {
+      await this.docker.ping();
+      dockerOk = AppHealth.OK;
+    } catch (err: unknown) {
+      Logger.error(err, 'ContainerManager/checkHealth');
+      throw err;
+    }
+
+    return dockerOk;
+  }
+
+  /**
+   * Gets the status of the container manager, including the health of the application and the status of the container hosts.
+   * @returns The status of the container manager.
+   */
+  async getStatus(): Promise<StatusReport> {
+    const status = {
+      appHealth: (await this.checkHealth()) === AppHealth.OK ? 'healthy' : 'unhealthy',
+      containerHosts: [],
+      masterImage: this.config.masterImage,
+      masterTag: this.config.masterTag,
+    };
+
+    for (const container of this.containers) {
+      status.containerHosts.push({
+        name: container.branch,
+        branch: container.branch,
+        checkout: container.checkout,
+        active: container.status === ContainerHostStatus.ACTIVE,
+        lastAccessed: container.lastAccessed ? new Date(container.lastAccessed).toISOString() : undefined,
+      });
+    }
+
+    return status;
+  }
+
+  /**
+   * Deletes a container by name and frees up its resources.
+   * @param name The name of the container to delete.
+   */
+  async deleteContainer(name: string): Promise<void> {
+    Logger.log(`Deleting container for branch ${name}`, 'ContainerManager/deleteContainer');
+    const container: Container = this.docker.getContainer(`${this.config.containerPrefix}-${name}`);
+
+    if (!container) {
+      throw new NotFoundException('No deployment found with that name.');
+    }
+    await this.kill(container);
+
+    const containerIndex: number = this.containers.indexOf(
+      this.containers.find((container) => container.branch === name),
+    );
+    this.containers.splice(containerIndex, 1);
+    await this.saveState();
+
+    deleteIfExists(join(this.config.configDirHost, name));
+    deleteIfExists(join(this.config.dataDirHost, name));
+    await this.docker.pruneContainers({ all: true });
+
+    Logger.log(`Container for branch ${name} deleted`, 'ContainerManager/deleteContainer');
+  }
+
+  /**
+   * Initializes the container manager.
+   */
+  private async init(): Promise<void> {
+    this.config = getConfig(this.configService);
+
+    const activeContainers: ContainerInfo[] = await this.docker.listContainers({ all: true });
+    if (activeContainers) {
+      const containerConfigs: PromiseSettledResult<ContainerConfig>[] = await Promise.allSettled(
+        activeContainers.map(async (container) => {
+          const prefix: string = container.Names[0].split('-').slice(0, -1).join('-');
+          if (prefix?.includes(this.config.containerPrefix)) {
+            return await this.runningContainerToConfig(this.docker.getContainer(container.Id));
+          }
+        }),
+      );
+      for (const containerConfig of containerConfigs) {
+        if (containerConfig.status === 'fulfilled' && containerConfig.value !== undefined) {
+          this.containers.push(containerConfig.value);
+        }
+      }
+    }
+
+    if (!pathExists(this.config.configDirHost)) {
+      await fs.mkdir(this.config.configDirHost, { recursive: true });
+      Logger.debug(`Created config directory at ${this.config.configDirHost}`, 'ContainerManager/init');
+    }
+    if (!pathExists(this.config.dataDirHost)) {
+      await fs.mkdir(this.config.dataDirHost, { recursive: true });
+      Logger.debug(`Created data directory at ${this.config.dataDirHost}`, 'ContainerManager/init');
+    }
+
+    await this.ensureMasterImage();
+    await this.loadState();
+    Logger.debug(this.containers, 'ContainerManager/init');
+
+    void this.saveState();
+
+    this.initialized = true;
+  }
+
+  /**
+   * Converts a running container to a ContainerConfig object.
+   * @param container The container to convert.
+   * @returns The ContainerConfig object.
+   */
+  private async runningContainerToConfig(container: Dockerode.Container): Promise<ContainerConfig> {
+    const inspect: ContainerInspectInfo = await container.inspect();
+    const [image] = inspect.Config.Image.split(':');
+
+    const branch: string = inspect.Config.Env.find((env) => env.startsWith('CI_BRANCH=')).split('=')[1];
+    const checkout: string = inspect.Config.Env.find((env) => env.startsWith('CI_CHECKOUT=')).split('=')[1];
+    const keepActive: string = inspect.Config.Env.find((env) => env.startsWith('CI_KEEP_ACTIVE=')).split('=')[1];
+    const active: boolean = inspect.State.Running;
+
+    return {
+      status: active ? ContainerHostStatus.ACTIVE : ContainerHostStatus.INACTIVE,
+      branch,
+      checkout,
+      containerHost: container,
+      image,
+      keepActive: keepActive === 'true',
+    };
   }
 
   /**
@@ -200,7 +354,7 @@ export class ContainerManager {
           `CI_BRANCH=${options.branch}`,
           `CI_BUILD_SCRIPT=${this.config.customBuildScriptLocal ? `${this.config.configDirContainer}/build.sh` : this.config.customBuildScript}`,
           `CI_CHECKOUT=${options.checkout ? options.checkout : options.branch}`,
-          `CI_KEEP_ACTIVE=${options['keepActive'] === true}`,
+          `CI_KEEP_ACTIVE=${options.keepActive === true}`,
           `CI_REPO_URL=${this.config.repoUrl}`,
         ],
         {
@@ -215,7 +369,7 @@ export class ContainerManager {
         branch: options.branch,
         checkout: options.checkout ? options.checkout : options.branch,
         containerHost: containerHost,
-        keepActive: options['keepActive'] === true,
+        keepActive: options.keepActive === true,
         lastAccessed: new Date().getTime(),
         status: ContainerHostStatus.BUILDING,
       };
@@ -255,7 +409,7 @@ export class ContainerManager {
   }
 
   /**
-   * Loads the state of the container manager from a file.
+   * Loads the state of the container manager from a file, while optionally syncing the state with the file if a container is missing.
    */
   private async loadState(): Promise<void> {
     try {
@@ -266,8 +420,21 @@ export class ContainerManager {
         const runningContainer: ContainerConfig = this.containers.find(
           (container) => config.branch === container.branch,
         );
-        if (runningContainer) {
-          this.containers[this.containers.indexOf(runningContainer)] = config;
+        if (!runningContainer) {
+          Logger.log(
+            `Did not find container ${config.branch} in running containers, sync state with state.json...`,
+            'ContainerManager/loadState',
+          );
+          const containerConfig: RunContainerDto = {
+            branch: config.branch,
+            checkout: config.checkout,
+            keepActive: config.keepActive,
+            authToken: undefined,
+            authUser: undefined,
+          };
+          await this.createContainerHost(containerConfig);
+        } else {
+          Logger.log(`Found container ${config.branch} in running containers...`, 'ContainerManager/loadState');
         }
       }
 
@@ -484,92 +651,6 @@ export class ContainerManager {
   }
 
   /**
-   * Accesses a container via a subdomain. To be called from the proxy.
-   * @param host The host to access the container for.
-   * @returns The container to access.
-   */
-  async accessContainer(host: string): Promise<Container> {
-    const containerName: string = host.split('.')[0];
-    const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
-
-    Logger.debug(`Accessing container via subdomain ${containerName}`, 'ContainerManager/accessContainer');
-    if (!container) throw new NotFoundException();
-
-    try {
-      if (container && container.status === ContainerHostStatus.ACTIVE) {
-        Logger.debug(`Container found among active containers...`, 'ContainerManager/accessContainer');
-
-        container.lastAccessed = new Date().getTime();
-        return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
-      } else if (container && container.status === ContainerHostStatus.INACTIVE) {
-        Logger.debug(`Container found in inactive containers, starting...`, 'ContainerManager/accessContainer');
-
-        container.lastAccessed = new Date().getTime();
-        return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
-      } else if (dontTouchContainer(container.status)) {
-        Logger.debug(
-          `Container found in suspending or starting state, waiting for another state...`,
-          'ContainerManager/accessContainer',
-        );
-
-        while (dontTouchContainer(container.status)) {
-          await new Promise<void>((resolve) => setTimeout(resolve, 500));
-        }
-        return await this.accessContainer(host);
-      }
-    } catch (err: unknown) {
-      Logger.error(err, 'ContainerManager/accessContainer');
-      throw err;
-    }
-  }
-
-  /**
-   * Shuts down containerHost that are not busy.
-   */
-  async shutdownNonBusyContainers(): Promise<void> {
-    const now = new Date();
-    for (const containerConfig of this.containers) {
-      // Skip containerHost that are currently starting up or explicitly excluded from shutting down
-      if (dontTouchContainer(containerConfig.status) || containerConfig.keepActive) {
-        Logger.debug(
-          `Skipping container for branch ${containerConfig.branch} because of non-matching state`,
-          'ContainerManager/shutdownNonBusyContainers',
-        );
-        continue;
-      }
-
-      try {
-        if (
-          (containerConfig.status === ContainerHostStatus.ACTIVE &&
-            containerConfig.lastAccessed &&
-            now.getTime() - containerConfig.lastAccessed > this.config.idleTimeout) ||
-          (containerConfig.status === ContainerHostStatus.ACTIVE && !containerConfig.lastAccessed)
-        ) {
-          Logger.log(
-            `Shutting down container for branch ${containerConfig.branch}`,
-            'ContainerManager/shutdownNonBusyContainers',
-          );
-          const runningContainer: Container = await this.getContainer(
-            `${this.config.containerPrefix}-${containerConfig.branch}`,
-            false,
-          );
-          containerConfig.status = ContainerHostStatus.SUSPENDING;
-
-          if (this.config.suspendMode === 'stop') {
-            await runningContainer.stop({ t: 30 });
-          } else if (this.config.suspendMode === 'pause') {
-            await runningContainer.pause({ t: 10 });
-          }
-
-          containerConfig.status = ContainerHostStatus.INACTIVE;
-        }
-      } catch (err: unknown) {
-        Logger.error(err, 'ContainerManager/shutdownNonBusyContainers');
-      }
-    }
-  }
-
-  /**
    * Gets a container by name.
    * @param containerName The name of the container to get.
    * @param start Whether to start the container if it's not running.
@@ -616,51 +697,34 @@ export class ContainerManager {
     process.on('SIGINT', async () => {
       Logger.log('Shutting down...', 'ContainerManager');
       await this.saveState();
+      await this.shutdown();
       process.exit(0);
     });
     process.on('SIGTERM', async () => {
       Logger.log('Shutting down...', 'ContainerManager');
       await this.saveState();
+      await this.shutdown();
       process.exit(0);
     });
   }
 
   /**
-   * Checks the health of the container manager.
-   * @returns The health status of the container manager (OK or NOT OK).
+   * Suspends all containers on shutdown
    */
-  async checkHealth(): Promise<AppHealth> {
-    let dockerOk: AppHealth = AppHealth.ERROR;
-    try {
-      await this.docker.ping();
-      dockerOk = AppHealth.OK;
-    } catch (err: unknown) {
-      Logger.error(err, 'ContainerManager/checkHealth');
-      throw err;
-    }
+  private async shutdown(): Promise<void> {
+    await Promise.allSettled(
+      this.containers.map(async (container) => {
+        if (container.status === ContainerHostStatus.ACTIVE) {
+          Logger.log(`Suspending container for branch ${container.branch}`, 'ContainerManager/shutdown');
 
-    return dockerOk;
-  }
+          container.status = ContainerHostStatus.SUSPENDING;
+          await container.containerHost.stop({ t: 30 });
+          container.status = ContainerHostStatus.INACTIVE;
+        }
+      }),
+    );
 
-  async getStatus(): Promise<StatusReport> {
-    const status = {
-      appHealth: (await this.checkHealth()) === AppHealth.OK ? 'healthy' : 'unhealthy',
-      containerHosts: [],
-      masterImage: this.config.masterImage,
-      masterTag: this.config.masterTag,
-    };
-
-    for (const container of this.containers) {
-      status.containerHosts.push({
-        name: container.branch,
-        branch: container.branch,
-        checkout: container.checkout,
-        active: container.status === ContainerHostStatus.ACTIVE,
-        lastAccessed: container.lastAccessed ? new Date(container.lastAccessed).toISOString() : undefined,
-      });
-    }
-
-    return status;
+    Logger.log('All containers suspended', 'ContainerManager/shutdown');
   }
 
   /**
@@ -671,7 +735,7 @@ export class ContainerManager {
    * @param attempt The attempt number.
    * @returns An empty promise that resolves when the container is up.
    */
-  async waitForContainerUp(container: Container, attempt = 1): Promise<void> {
+  private async waitForContainerUp(container: Container, attempt = 1): Promise<void> {
     const stats: ContainerInspectInfo = await container.inspect();
     let targetIp: string;
     let retry = false;
@@ -709,31 +773,10 @@ export class ContainerManager {
   }
 
   /**
-   * Deletes a container by name and frees up its resources.
-   * @param name The name of the container to delete.
+   * Gets the path to the config file.
+   * @returns The path to the config file.
+   * @private
    */
-  async deleteContainer(name: string): Promise<void> {
-    Logger.log(`Deleting container for branch ${name}`, 'ContainerManager/deleteContainer');
-    const container: Container = this.docker.getContainer(`${this.config.containerPrefix}-${name}`);
-
-    if (!container) {
-      throw new NotFoundException('No deployment found with that name.');
-    }
-    await this.kill(container);
-
-    const containerIndex: number = this.containers.indexOf(
-      this.containers.find((container) => container.branch === name),
-    );
-    this.containers.splice(containerIndex, 1);
-    await this.saveState();
-
-    deleteIfExists(join(this.config.configDirHost, name));
-    deleteIfExists(join(this.config.dataDirHost, name));
-    await this.docker.pruneContainers({ all: true });
-
-    Logger.log(`Container for branch ${name} deleted`, 'ContainerManager/deleteContainer');
-  }
-
   private getConfigPath(): string {
     let configPath: string;
     if (this.config.isProd) {

@@ -60,12 +60,21 @@ services:
 
 networks:
   container-manager:
-    attachable: true
-    driver: bridge
+    external: true
     name: container-manager
 ```
 
 ## Running the application
+
+Before starting the compose file, make sure to create the Docker network manually.
+
+```bash
+$ docker network create container-manager
+```
+
+This is important to allow the container manager to communicate with the container hosts.
+We prefer manual creation as creating it in the compose file can lead to issues, such as mismatched network IDs between
+stopped containers when running `docker compose down` and `docker compose up` again.
 
 After setting up the application via a compose file, you can create a container host by sending either a POST or GET
 request to the `/run` route.

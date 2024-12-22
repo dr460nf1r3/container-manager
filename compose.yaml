@@ -26,9 +26,14 @@ services:
       CONFIG_SUSPEND_MODE: stop
     networks:
       - container-manager
+    restart: always
+    logging:
+      driver: 'local'
+      options:
+        max-size: '10m'
+        max-file: '5'
 
 networks:
   container-manager:
-    attachable: true
-    driver: bridge
+    external: true
     name: container-manager
