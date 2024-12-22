@@ -10,6 +10,9 @@ import { fastifyReplyFrom } from '@fastify/reply-from';
 async function bootstrap(): Promise<void> {
   const app: NestFastifyApplication = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
 
+  // Hook this early because we exit when SWAGGER_JSON is set
+  await provideSwagger(app, process.env.SWAGGER_JSON === 'true');
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -22,7 +25,6 @@ async function bootstrap(): Promise<void> {
   await app.register(helmet);
   await app.register(fastifyReplyFrom);
 
-  await provideSwagger(app, process.env.SWAGGER_JSON === 'true');
   initLoglevel(process.env.CONFIG_LOGLEVEL ?? 'log');
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');

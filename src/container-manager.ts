@@ -32,6 +32,9 @@ export class ContainerManager {
     private configService: ConfigService,
     private httpService: HttpService,
   ) {
+    // Don't initialize the container manager if we're generating Swagger JSON
+    if (process.env.SWAGGER_JSON === 'true') return;
+
     const socket: string = this.configService.getOrThrow<string>('DOCKER_SOCKET');
     this.docker = new Docker({ socketPath: socket });
     Logger.debug(`Connected to Docker socket at ${socket}`, 'ContainerManager');
