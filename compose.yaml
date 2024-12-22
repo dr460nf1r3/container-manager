@@ -8,15 +8,15 @@ services:
       - '80:3000'
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock:rw'
-      - '/home/nico/Documents/misc/container-manager:/home/nico/Documents/misc/container-manager:rw'
+      - '/var/lib/container-manager:/var/lib/container-manager:rw'
     environment:
       CONFIG_CONTAINER_PREFIX: container-host
       CONFIG_CONTAINER_MANAGER_NAME: container-manager
-      CONFIG_CUSTOM_BUILD_SCRIPT: /home/nico/Documents/misc/container-manager/test/build-script-test.sh
+      CONFIG_CUSTOM_BUILD_SCRIPT: /var/lib/container-manager/test/build-script-test.sh
       CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL: true
-      CONFIG_DATA_DIR_HOST: /home/nico/Documents/misc/container-manager/data
+      CONFIG_DATA_DIR_HOST: /var/lib/container-manager/data
       CONFIG_DIR_CONTAINER: /config
-      CONFIG_DIR_HOST: /home/nico/Documents/misc/container-manager/config
+      CONFIG_DIR_HOST: /var/lib/container-manager/config
       CONFIG_HOSTNAME: localhost.local
       CONFIG_IDLE_TIMEOUT: 60000
       CONFIG_LOGLEVEL: debug
@@ -24,8 +24,6 @@ services:
       CONFIG_MASTER_IMAGE_TAG: main
       CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git
       CONFIG_SUSPEND_MODE: stop
-      DOCKER_SOCKET: /var/run/docker.sock
-      NODE_ENV: production
     networks:
       - container-manager
 
