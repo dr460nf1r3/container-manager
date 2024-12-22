@@ -6,12 +6,12 @@ FAILURES=()
 
 # Prepare the environment
 echo "Setting up test environment..."
-mkdir -p /var/lib/container-manager
-cp -r ./test /var/lib/container-manager
+sudo mkdir -p /var/lib/container-manager
+sudo cp -r ./test /var/lib/container-manager
 
 # Run the server in production mode
 docker build . -t dr460nf1r3/container-manager:main
-docker compose up &
+sudo docker compose up &
 
 # Wait for the server to start
 sleep 5
@@ -39,7 +39,7 @@ for branch in "${BRANCHES[@]}"; do
 done
 
 # Stop the server
-docker compose down
+sudo docker compose down
 
 # If any of the tests failed, exit with a non-zero status
 if [ ${#FAILURES[@]} -gt 0 ]; then
