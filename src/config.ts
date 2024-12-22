@@ -6,7 +6,6 @@ export function getConfig(configService: ConfigService): AppConfig {
   return {
     configDirContainer: configService.get<string>('CONFIG_DIR_CONTAINER') ?? '/config',
     configDirHost: configService.get<string>('CONFIG_DIR_HOST') ?? './config',
-    containerManagerName: configService.get<string>('CONFIG_CONTAINER_MANAGER_NAME') ?? 'container-manager',
     containerPrefix: configService.get<string>('CONFIG_CONTAINER_PREFIX') ?? 'container-host',
     customBuildScript: configService.getOrThrow<string>('CONFIG_CUSTOM_BUILD_SCRIPT'),
     customBuildScriptLocal: configService.get<boolean>('CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL') ?? false,

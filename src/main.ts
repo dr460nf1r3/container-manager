@@ -8,10 +8,7 @@ import { initLoglevel } from './functions';
 import { fastifyReplyFrom } from '@fastify/reply-from';
 
 async function bootstrap(): Promise<void> {
-  const app: NestFastifyApplication = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({ logger: true }),
-  );
+  const app: NestFastifyApplication = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
 
   app.useGlobalPipes(
     new ValidationPipe({

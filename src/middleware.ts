@@ -2,8 +2,8 @@ import { FastifyRequest } from 'fastify';
 import { UnauthorizedException } from '@nestjs/common';
 
 /**
- * Middleware to check whether the request is from an admin.
- * @param req The request. Must have headers 'x-admin' and 'x-admin-secret' set.
+ * (not a real) middleware but rather a function to check whether the request is from an admin.
+ * @param req The request. Must have headers 'x-admin-request' and 'x-admin-token' set.
  * @param needsAuth Whether the request must have correct credentials. Useful for public admin routes.
  */
 export function checkWhetherWeShouldAdmin(req: FastifyRequest, needsAuth = true): boolean {

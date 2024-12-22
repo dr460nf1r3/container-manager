@@ -21,7 +21,6 @@ export type SuspendMode = 'stop' | 'pause';
 export interface AppConfig {
   configDirContainer: string;
   configDirHost: string;
-  containerManagerName: string;
   containerPrefix: string;
   customBuildScript: string;
   customBuildScriptLocal: boolean;
