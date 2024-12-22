@@ -19,7 +19,7 @@ import { AxiosResponse } from 'axios';
 import { AppConfig, ContainerConfig, SaveFile, StatusReport } from './interfaces';
 import { getConfig } from './config';
 import { AppHealth, ContainerHostStatus, ONE_WEEK } from './constants';
-import { deleteIfExists, pathExists } from './functions';
+import { deleteIfExists, dontTouchContainer, pathExists } from './functions';
 
 export class ContainerManager {
   containers: ContainerConfig[] = [];
@@ -62,6 +62,15 @@ export class ContainerManager {
           this.containers.push(containerConfig.value);
         }
       }
+    }
+
+    if (!pathExists(this.config.configDirHost)) {
+      await fs.mkdir(this.config.configDirHost, { recursive: true });
+      Logger.debug(`Created config directory at ${this.config.configDirHost}`, 'ContainerManager/init');
+    }
+    if (!pathExists(this.config.dataDirHost)) {
+      await fs.mkdir(this.config.dataDirHost, { recursive: true });
+      Logger.debug(`Created data directory at ${this.config.dataDirHost}`, 'ContainerManager/init');
     }
 
     await this.loadState();
@@ -167,6 +176,10 @@ export class ContainerManager {
         Logger.debug(`Creating config directory for branch ${options.branch}`, 'ContainerManager/createContainerHost');
         await fs.mkdir(configDirHost, { recursive: true });
       }
+      if (!pathExists(dataDirHost)) {
+        Logger.debug(`Creating data directory for branch ${options.branch}`, 'ContainerManager/createContainerHost');
+        await fs.mkdir(dataDirHost, { recursive: true });
+      }
 
       if (this.config.customBuildScriptLocal) {
         Logger.debug(
@@ -187,7 +200,7 @@ export class ContainerManager {
           `CI_BRANCH=${options.branch}`,
           `CI_BUILD_SCRIPT=${this.config.customBuildScriptLocal ? `${this.config.configDirContainer}/build.sh` : this.config.customBuildScript}`,
           `CI_CHECKOUT=${options.checkout ? options.checkout : options.branch}`,
-          `CI_KEEP_ACTIVE=${options['keep-active'] === true}`,
+          `CI_KEEP_ACTIVE=${options['keepActive'] === true}`,
           `CI_REPO_URL=${this.config.repoUrl}`,
         ],
         {
@@ -202,7 +215,7 @@ export class ContainerManager {
         branch: options.branch,
         checkout: options.checkout ? options.checkout : options.branch,
         containerHost: containerHost,
-        keepActive: options['keep-active'] === true,
+        keepActive: options['keepActive'] === true,
         lastAccessed: new Date().getTime(),
         status: ContainerHostStatus.BUILDING,
       };
@@ -477,10 +490,12 @@ export class ContainerManager {
    */
   async accessContainer(host: string): Promise<Container> {
     const containerName: string = host.split('.')[0];
+    const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
+
     Logger.debug(`Accessing container via subdomain ${containerName}`, 'ContainerManager/accessContainer');
+    if (!container) throw new NotFoundException();
 
     try {
-      const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
       if (container && container.status === ContainerHostStatus.ACTIVE) {
         Logger.debug(`Container found among active containers...`, 'ContainerManager/accessContainer');
 
@@ -491,20 +506,13 @@ export class ContainerManager {
 
         container.lastAccessed = new Date().getTime();
         return await this.getContainer(`${this.config.containerPrefix}-${container.branch}`, true);
-      } else if (
-        (container && container.status === ContainerHostStatus.SUSPENDING) ||
-        container.status === ContainerHostStatus.STARTING
-      ) {
+      } else if (dontTouchContainer(container.status)) {
         Logger.debug(
           `Container found in suspending or starting state, waiting for another state...`,
           'ContainerManager/accessContainer',
         );
 
-        while (
-          container.status === ContainerHostStatus.SUSPENDING ||
-          container.status === ContainerHostStatus.STARTING ||
-          container.status === ContainerHostStatus.BUILDING
-        ) {
+        while (dontTouchContainer(container.status)) {
           await new Promise<void>((resolve) => setTimeout(resolve, 500));
         }
         return await this.accessContainer(host);
@@ -513,9 +521,6 @@ export class ContainerManager {
       Logger.error(err, 'ContainerManager/accessContainer');
       throw err;
     }
-
-    Logger.warn(`Container not found in inactive containers, can't serve request`, 'ContainerManager/accessContainer');
-    throw new NotFoundException();
   }
 
   /**
@@ -525,10 +530,7 @@ export class ContainerManager {
     const now = new Date();
     for (const containerConfig of this.containers) {
       // Skip containerHost that are currently starting up or explicitly excluded from shutting down
-      if (
-        containerConfig.status === (ContainerHostStatus.STARTING || ContainerHostStatus.SUSPENDING) ||
-        containerConfig.keepActive
-      ) {
+      if (dontTouchContainer(containerConfig.status) || containerConfig.keepActive) {
         Logger.debug(
           `Skipping container for branch ${containerConfig.branch} because of non-matching state`,
           'ContainerManager/shutdownNonBusyContainers',

@@ -1,19 +1,15 @@
 import * as fs from 'node:fs';
 import { Logger, LogLevel } from '@nestjs/common';
+import { ContainerHostStatus } from './constants';
 
 /**
  * Check if a path exists.
+ * This is a wrapper around fs.existsSync, since it does not have a direct equivalent in the fs/promises API.
  * @param path The path to check.
  * @returns True if the path exists, false otherwise.
  */
 export function pathExists(path: fs.PathLike): boolean {
-  try {
-    fs.accessSync(path);
-    return true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    return false;
-  }
+  return fs.existsSync(path);
 }
 
 /**
@@ -50,4 +46,13 @@ export function deleteIfExists(path: fs.PathLike): void {
   if (pathExists(path)) {
     fs.rmSync(path, { recursive: true });
   }
+}
+
+/**
+ * Shorthand function for less visual clutter.
+ * @param status The status to check.
+ * @returns True if the container should not be touched, false otherwise.
+ */
+export function dontTouchContainer(status: ContainerHostStatus): boolean {
+  return status === (ContainerHostStatus.BUILDING || ContainerHostStatus.SUSPENDING || ContainerHostStatus.STARTING);
 }

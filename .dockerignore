@@ -1,10 +1,12 @@
 /node_modules
 /config
 /data
+/dind-image
 /dist
 /.idea
 /.vscode
 /.devshell
+/.direnv
 /.github
 /.run
 /test
