@@ -31,15 +31,15 @@ jobs:
             accept-flake-config = true
           diagnostic-endpoint: ''
 
-      - name: Generate changelog
-        run: nix develop -c cz changelog --incremental
-
       - name: Set Git User Info and pull eventual changes
         run: |
           git switch main
           git pull --rebase
           git config user.name 'Temeraire'
           git config user.email 'actions@chaotic.cx'
+
+      - name: Generate changelog
+        run: nix develop -c cz changelog --incremental
 
       - name: Commit Changelog
         run: |
