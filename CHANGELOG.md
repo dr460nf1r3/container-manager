@@ -1,3 +1,21 @@
+## Unreleased
+
+### Feat
+
+- **Dockerfile**: update and adapt compose.yaml for current state
+- improve readability and misc enhancements
+- **submodule**: add dind-image
+
+### Fix
+
+- **tests**: use sudo in e2e.sh where required
+- **tests**: fixup Jest tests and improve real world test
+- **flake.nix**: don't pollute nix develop -c output with pnpm messages
+
+### Refactor
+
+- **global**: real proxy; solve a few edge cases and improve robustness
+
 ## 1.0.0 (2024-12-20)
 
 ### Feat
