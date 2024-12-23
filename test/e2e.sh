@@ -93,6 +93,7 @@ test-delete() {
 
   # Test whether the containers are actually gone
   _test_name="verification, deletion"
+  echo "Testing whether the containers are actually gone"
   sudo docker ps -a | grep -qE '(test-env-1)|(test-env-2)|(container-host-main)' && FAILURES+=("$_test_name") || SUCCESS+=("$_test_name")
 }
 

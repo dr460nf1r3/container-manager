@@ -1,61 +1,51 @@
 ---
 name: 'Release management'
-permissions:
-  contents: write
 on:
   push:
     tags: ['*']
 jobs:
   changelog:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v16
-        with:
-          extra-conf: |
-            accept-flake-config = true
-          diagnostic-endpoint: ''
-
-      - name: Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
-
-      - name: Set Git User Info and pull eventual changes
+      - name: Set Git User Info
         run: |
-          git switch main
-          git pull --rebase
           git config user.name 'Temeraire'
           git config user.email 'actions@chaotic.cx'
 
-      - name: Generate changelog
-        run: nix develop -c cz changelog --incremental
+      - name: Generate a complete changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: -v --no-exec --github-repo ${{ github.repository }}
+        env:
+          OUTPUT: CHANGELOG.md
 
-      - name: Commit Changelog
+      - name: Commit changelog
         run: |
+          git checkout main
+          git config user.name 'Temeraire'
+          git config user.email 'actions@chaotic.cx'
           git add CHANGELOG.md
-          git commit -m "docs(CHANGELOG.md): update" || echo "No changes to commit"
-          git push origin HEAD:main || git pull --rebase && git push origin HEAD:main
+          git commit -m "docs(CHANGELOG.md): update"
+          git push "https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" main
 
-      - name: Get only latest release notes
-        run: |
-          pnpm run changelog:latest
+      - name: Generate a changelog for the latest release
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: -v --no-exec --github-repo ${{ github.repository }} --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          OUTPUT: CHANGES.md
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          body_path: CHANGELOG.temp
+          body_path: CHANGES.md
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
