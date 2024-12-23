@@ -78,23 +78,22 @@
       in rec {
         default = container-manager;
         container-manager = mkShell {
-          devshell.name = "container-manager";
-          commands = [
-            {package = "git-cliff";}
-            {package = "pre-commit";}
-          ];
-          devshell.startup.preCommitHooks.text = ''
-            ${self.checks.${system}.pre-commit-check.shellHook}
+          commands = [{package = "pre-commit";}];
+          devshell = {
+            name = "container-manager";
+            startup.preCommitHooks.text = ''
+              ${self.checks.${system}.pre-commit-check.shellHook}
 
-            if [ ! -d node_modules ]; then
-              ${pkgs.pnpm}/bin/pnpm install
-            else
-              outcome=$(${pkgs.pnpm}/bin/pnpm install)
-              if  [[ !  "$outcome" =~ "Lockfile is up to date" ]]; then
-                echo "Dependencies have been updated"
+              if [ ! -d node_modules ]; then
+                ${pkgs.pnpm}/bin/pnpm install
+              else
+                outcome=$(${pkgs.pnpm}/bin/pnpm install)
+                if  [[ !  "$outcome" =~ "Lockfile is up to date" ]]; then
+                  echo "Dependencies have been updated"
+                fi
               fi
-            fi
-          '';
+            '';
+          };
           env = [
             {
               name = "NIX_PATH";

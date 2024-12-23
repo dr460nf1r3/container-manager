@@ -90,7 +90,7 @@ jobs:
       contents: read
       packages: write
       attestations: write
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/tags/*'
     needs:
       - lint
       - test
