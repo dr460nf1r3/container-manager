@@ -121,61 +121,71 @@ If the secret is not set, the routes are available without authentication.
 The Swagger API documentation can be found at `/api` when the application is running
 (e.g. [http://localhost/api](http://localhost/api)).
 
-### Current routes
+<details>
 
-#### Path Table
+<summary>Current routes (might not be up to date)</summary>
 
-| Method  | Path                  | Description |
-| ------- | --------------------- | ----------- |
-| GET     | [/run](#getrun)       |             |
-| POST    | [/run](#postrun)      |             |
-| GET     | [/health](#gethealth) |             |
-| GET     | [/status](#getstatus) |             |
-| GET     | [/delete](#getdelete) |             |
-| GET     | [/\*](#get)           |             |
-| POST    | [/\*](#post)          |             |
-| PUT     | [/\*](#put)           |             |
-| DELETE  | [/\*](#delete)        |             |
-| PATCH   | [/\*](#patch)         |             |
-| OPTIONS | [/\*](#options)       |             |
-| HEAD    | [/\*](#head)          |             |
-| SEARCH  | [/\*](#search)        |             |
+### Path Table
 
-#### Reference Table
+| Method  | Path                           | Description |
+| ------- | ------------------------------ | ----------- |
+| GET     | [/container](#getcontainer)    |             |
+| POST    | [/container](#postcontainer)   |             |
+| DELETE  | [/container](#deletecontainer) |             |
+| GET     | [/health](#gethealth)          |             |
+| GET     | [/status](#getstatus)          |             |
+| GET     | [/\*](#get)                    |             |
+| POST    | [/\*](#post)                   |             |
+| PUT     | [/\*](#put)                    |             |
+| DELETE  | [/\*](#delete)                 |             |
+| PATCH   | [/\*](#patch)                  |             |
+| OPTIONS | [/\*](#options)                |             |
+| HEAD    | [/\*](#head)                   |             |
+| SEARCH  | [/\*](#search)                 |             |
+
+## Reference Table
 
 | Name            | Path                                                                      | Description |
 | --------------- | ------------------------------------------------------------------------- | ----------- |
 | RunContainerDto | [#/components/schemas/RunContainerDto](#componentsschemasruncontainerdto) |             |
 
-#### Path Details
-
 ---
 
-##### [GET]/run
+### [GET]/container
 
-###### Parameters(Query)
+#### Parameters(Query)
 
 ```ts
 branch: string;
 ```
 
 ```ts
-checkout: string; // optional
+checkout?: string
 ```
 
 ```ts
-authToken: string; // optional
+authToken?: string
 ```
 
 ```ts
-authUser: string; // optional
+authUser?: string
 ```
 
 ```ts
-keepActive: boolean; // optional
+keepActive?: boolean
 ```
 
-###### Responses
+#### Headers
+
+```ts
+X-Admin-Token?: string
+```
+
+```ts
+X-Admin-Request: string
+```
+
+#### Responses
 
 - 201 The deployment has been created successfully.
 
@@ -185,28 +195,38 @@ keepActive: boolean; // optional
 
 ---
 
-##### [POST]/run
+### [POST]/container
 
-###### RequestBody
+#### Headers
+
+```ts
+X-Admin-Token?: string
+```
+
+```ts
+X-Admin-Request: string
+```
+
+#### RequestBody
 
 - application/json
 
 ```ts
 {
   // The branch this deployment corresponds to
-  branch: string;
+  branch: string
   // Whether to checkout a tag or commit hash
-  checkout: string; // optional
+  checkout?: string
   // The username to authenticate with, if required
-  authToken: string; // optional
+  authToken?: string
   // The API token to use while cloning the repository, if required
-  authUser: string; // optional
+  authUser?: string
   // Whether the deployment should be kept active at all times, e.g. for cronjob tests - off by default
-  keepActive: boolean; // optional
+  keepActive?: boolean
 }
 ```
 
-###### Responses
+#### Responses
 
 - 201 The deployment has been created successfully.
 
@@ -216,35 +236,25 @@ keepActive: boolean; // optional
 
 ---
 
-##### [GET]/health
+### [DELETE]/container
 
-###### Responses
-
-- 200 The health of the application is okay.
-
-- 500 The app is unhealthy.
-
----
-
-##### [GET]/status
-
-###### Responses
-
-- 200 The status of the application.
-
-- 500 An error occurred while retrieving the status of the application.
-
----
-
-##### [GET]/delete
-
-###### Parameters(Query)
+#### Parameters(Query)
 
 ```ts
 branch: string;
 ```
 
-###### Responses
+#### Headers
+
+```ts
+X-Admin-Token?: string
+```
+
+```ts
+X-Admin-Request: string
+```
+
+#### Responses
 
 - 201 The deployment has been deleted successfully.
 
@@ -252,83 +262,135 @@ branch: string;
 
 ---
 
-##### [GET]/\*
+### [GET]/health
 
-###### Responses
+#### Headers
 
-- 200 Proxy the request to the deployed container host.
+```ts
+X-Admin-Request: string
+```
 
-- 404 No container found with that name.
+#### Responses
 
----
+- 200 The health of the application is okay.
 
-##### [POST]/\*
-
-###### Responses
-
-- 200 Proxy the request to the deployed container host.
-
-- 404 No container found with that name.
+- 503 The app is unhealthy.
 
 ---
 
-##### [PUT]/\*
+### [GET]/status
 
-###### Responses
+#### Headers
 
-- 200 Proxy the request to the deployed container host.
+```ts
+X-Admin-Token?: string
+```
 
-- 404 No container found with that name.
+```ts
+X-Admin-Request: string
+```
+
+#### Responses
+
+- 200 The status of the application.
+
+- 500 An error occurred while retrieving the status of the application.
 
 ---
 
-##### [DELETE]/\*
+### [GET]/\*
 
-###### Responses
-
-- 200 Proxy the request to the deployed container host.
+#### Responses
 
 - 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
+
+---
+
+### [POST]/\*
+
+#### Responses
+
+- 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
+
+---
+
+### [PUT]/\*
+
+#### Responses
+
+- 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
+
+---
+
+### [DELETE]/\*
+
+#### Responses
+
+- 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
 
 ---
 
 ### [PATCH]/\*
 
-###### Responses
-
-- 200 Proxy the request to the deployed container host.
+#### Responses
 
 - 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
 
 ---
 
-##### [OPTIONS]/\*
+### [OPTIONS]/\*
 
-###### Responses
-
-- 200 Proxy the request to the deployed container host.
+#### Responses
 
 - 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
 
 ---
 
-##### [HEAD]/\*
+### [HEAD]/\*
 
-###### Responses
-
-- 200 Proxy the request to the deployed container host.
+#### Responses
 
 - 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
 
 ---
 
-##### [SEARCH]/\*
+### [SEARCH]/\*
 
-###### Responses
-
-- 200 Proxy the request to the deployed container host.
+#### Responses
 
 - 404 No container found with that name.
+
+- 405 The method is not allowed for this route, if an X-Admin-Request header is sent.
+
+- default Proxy the request to the deployed container host.
 
 ## References
 
@@ -337,17 +399,19 @@ branch: string;
 ```ts
 {
   // The branch this deployment corresponds to
-  branch: string;
+  branch: string
   // Whether to checkout a tag or commit hash
-  checkout ? : string;
+  checkout?: string
   // The username to authenticate with, if required
-  authToken ? : string;
+  authToken?: string
   // The API token to use while cloning the repository, if required
-  authUser ? : string;
+  authUser?: string
   // Whether the deployment should be kept active at all times, e.g. for cronjob tests - off by default
-  keepActive ? : boolean;
+  keepActive?: boolean
 }
 ```
+
+</details>
 
 ## Eventually planned features
 
