@@ -19,7 +19,7 @@ services:
       CONFIG_DIR_HOST: /var/lib/container-manager/config
       CONFIG_HOSTNAME: localhost.local
       CONFIG_IDLE_TIMEOUT: 60000
-      CONFIG_LOGLEVEL: debug
+      CONFIG_LOGLEVEL: log
       CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
       CONFIG_MASTER_IMAGE_TAG: main
       CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git

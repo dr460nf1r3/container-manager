@@ -15,9 +15,10 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "swagger": "SWAGGER_JSON=true nest start",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"{src,assets,test}/**/*.ts\" --fix",
     "test": "jest",
-    "test-e2e": "jest --config ./test/jest-e2e.json"
+    "test-e2e": "jest --config ./test/jest-e2e.json",
+    "test-rl": "bash test/e2e.sh"
   },
   "dependencies": {
     "@fastify/helmet": "^11.1.1",
