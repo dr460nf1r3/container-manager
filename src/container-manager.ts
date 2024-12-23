@@ -46,13 +46,15 @@ export class ContainerManager {
   /**
    * Deploys a new container for a branch.
    * @param options The options for the deployment, including the branch to deploy.
+   * @param remove Whether to remove the container before redeploying, if it already exists.
    */
-  async newDeployment(options: RunContainerDto): Promise<ContainerConfig> {
+  async newDeployment(options: RunContainerDto, remove = true): Promise<ContainerConfig> {
     const containerInConfig: ContainerConfig = this.containers.find((container) =>
       container.branch?.includes(options.branch),
     );
-    const containerIsRunning: ContainerInfo = (await this.docker.listContainers({ all: true })).find((container) =>
-      container.Names.includes(`/${this.config.containerPrefix}-${options.branch}`),
+    const containerIsRunning: ContainerInfo = (await this.docker.listContainers({ all: true })).find(
+      (container) =>
+        container.Names.includes(`/${this.config.containerPrefix}-${options.branch}`) && container.State === 'running',
     );
     let response: ContainerConfig;
 
@@ -64,7 +66,8 @@ export class ContainerManager {
       const container: ContainerInfo = (await this.docker.listContainers({ all: true })).find((container) =>
         container.Names.includes(`/${this.config.containerPrefix}-${options.branch}`),
       );
-      await this.kill(this.docker.getContainer(container.Id));
+
+      if (remove) await this.kill(this.docker.getContainer(container.Id));
 
       const containerIndex: number = this.containers.indexOf(
         this.containers.find((container) => container.branch === options.branch),
@@ -240,7 +243,6 @@ export class ContainerManager {
 
     deleteIfExists(join(this.config.configDirHost, name));
     deleteIfExists(join(this.config.dataDirHost, name));
-    await this.docker.pruneContainers({ all: true });
 
     Logger.log(`Container for branch ${name} deleted`, 'ContainerManager/deleteContainer');
   }
@@ -415,6 +417,11 @@ export class ContainerManager {
    * Loads the state of the container manager from a file, while optionally syncing the state with the file if a container is missing.
    */
   private async loadState(): Promise<void> {
+    if (!pathExists(this.getConfigPath())) {
+      Logger.warn('No state file found, starting fresh...', 'ContainerManager/loadState');
+      return;
+    }
+
     try {
       const state: string = await fs.readFile(this.getConfigPath(), 'utf-8');
       const parsed: SaveFile = JSON.parse(state.toString());
@@ -440,10 +447,8 @@ export class ContainerManager {
           Logger.log(`Found container ${config.branch} in running containers...`, 'ContainerManager/loadState');
         }
       }
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err: unknown) {
-      Logger.warn('No state file found, starting fresh...', 'ContainerManager/loadState');
+      Logger.error(`Got an error while restoring state: ${err}`, 'ContainerManager/loadState');
     }
   }
 
@@ -508,7 +513,6 @@ export class ContainerManager {
       await this.docker.getContainer(container.id).remove({ force: true });
     } catch (err: unknown) {
       Logger.error(err, 'ContainerManager/kill');
-      throw err;
     }
   }
 
@@ -771,7 +775,8 @@ export class ContainerManager {
       await new Promise<void>((resolve) => setTimeout(resolve, 1000));
       await this.waitForContainerUp(container, attempt + 1);
     } else {
-      Logger.log(`Container ${container.id} is up`, 'ContainerManager/waitForContainerUp');
+      const containerName: string = (await container.inspect()).Name.slice(1);
+      Logger.log(`Container ${containerName} is up`, 'ContainerManager/waitForContainerUp');
     }
   }
 
