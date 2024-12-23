@@ -2,9 +2,11 @@ import {
   All,
   Body,
   Controller,
+  Delete,
   Get,
   InternalServerErrorException,
   Logger,
+  MethodNotAllowedException,
   Post,
   Query,
   Req,
@@ -19,7 +21,9 @@ import { ContainerConfig, StatusReport } from './interfaces';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
+  ApiHeaders,
   ApiInternalServerErrorResponse,
+  ApiMethodNotAllowedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiResponse,
@@ -38,7 +42,24 @@ export class AppController {
   @ApiBadRequestResponse({ description: 'The given parameters were not what we expect.' })
   @ApiCreatedResponse({ description: 'The deployment has been created successfully.' })
   @ApiResponse({ status: 500, description: 'An error occurred while creating the deployment.' })
-  @Get('run')
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Request',
+      required: true,
+      description:
+        'Set to true to indicate that this is an admin request. Otherwise will redirect to the catch-all route.',
+      example: { 'X-Admin-Request': 'true' },
+    },
+  ])
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Token',
+      required: false,
+      description: 'The token to authenticate the admin request. Not required if authentication is turned off.',
+      example: { 'X-Admin-Token': 'example-token' },
+    },
+  ])
+  @Get('container')
   async runContainerGet(
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
@@ -54,8 +75,25 @@ export class AppController {
 
   @ApiBadRequestResponse({ description: 'The given parameters were not what we expect.' })
   @ApiCreatedResponse({ description: 'The deployment has been created successfully.' })
-  @ApiResponse({ status: 500, description: 'An error occurred while creating the deployment.' })
-  @Post('run')
+  @ApiInternalServerErrorResponse({ description: 'An error occurred while creating the deployment.' })
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Request',
+      required: true,
+      description:
+        'Set to true to indicate that this is an admin request. Otherwise will redirect to the catch-all route.',
+      example: { 'X-Admin-Request': 'true' },
+    },
+  ])
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Token',
+      required: false,
+      description: 'The token to authenticate the admin request. Not required if authentication is turned off.',
+      example: { 'X-Admin-Token': 'example-token' },
+    },
+  ])
+  @Post('container')
   async runContainerPost(
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
@@ -70,7 +108,16 @@ export class AppController {
   }
 
   @ApiOkResponse({ description: 'The health of the application is okay.' })
-  @ApiInternalServerErrorResponse({ description: 'The app is unhealthy.' })
+  @ApiResponse({ status: 503, description: 'The app is unhealthy.' })
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Request',
+      required: true,
+      description:
+        'Set to true to indicate that this is an admin request. Otherwise will redirect to the catch-all route.',
+      example: { 'X-Admin-Request': 'true' },
+    },
+  ])
   @Get('health')
   async healthCheck(): Promise<{ status: string }> {
     const currentHealth: AppHealth = await this.appService.checkHealth();
@@ -83,6 +130,23 @@ export class AppController {
 
   @ApiOkResponse({ description: 'The status of the application.' })
   @ApiInternalServerErrorResponse({ description: 'An error occurred while retrieving the status of the application.' })
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Request',
+      required: true,
+      description:
+        'Set to true to indicate that this is an admin request. Otherwise will redirect to the catch-all route.',
+      example: { 'X-Admin-Request': 'true' },
+    },
+  ])
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Token',
+      required: false,
+      description: 'The token to authenticate the admin request. Not required if authentication is turned off.',
+      example: { 'X-Admin-Token': 'example-token' },
+    },
+  ])
   @Get('status')
   async getStatus(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {
     if (!checkWhetherWeShouldAdmin(req)) {
@@ -96,7 +160,24 @@ export class AppController {
 
   @ApiCreatedResponse({ description: 'The deployment has been deleted successfully.' })
   @ApiNotFoundResponse({ description: 'No deployment found with that name.' })
-  @Get('delete')
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Request',
+      required: true,
+      description:
+        'Set to true to indicate that this is an admin request. Otherwise will redirect to the catch-all route.',
+      example: { 'X-Admin-Request': 'true' },
+    },
+  ])
+  @ApiHeaders([
+    {
+      name: 'X-Admin-Token',
+      required: false,
+      description: 'The token to authenticate the admin request. Not required if authentication is turned off.',
+      example: { 'X-Admin-Token': 'example-token' },
+    },
+  ])
+  @Delete('container')
   async deleteContainer(
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
@@ -111,10 +192,17 @@ export class AppController {
     res.status(201).send();
   }
 
-  @ApiOkResponse({ description: 'Proxy the request to the deployed container host.' })
+  @ApiResponse({ description: 'Proxy the request to the deployed container host.', status: 'default' })
   @ApiNotFoundResponse({ description: 'No container found with that name.' })
+  @ApiMethodNotAllowedResponse({
+    description: 'The method is not allowed for this route, if an X-Admin-Request header is sent.',
+  })
   @All('*')
   async redirectToProxy(@Req() req: FastifyRequest, @Res() res: FastifyReply): Promise<void> {
+    if (req.raw.headers['x-admin-request']) {
+      throw new MethodNotAllowedException('Admin requests are not allowed on this route.');
+    }
+
     const host: string = req.headers.host;
     const targetIp: string = await this.appService.proxyRequest(host);
     Logger.debug(`Redirecting request to ${targetIp}`);
