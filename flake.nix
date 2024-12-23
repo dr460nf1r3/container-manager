@@ -80,7 +80,7 @@
         container-manager = mkShell {
           devshell.name = "container-manager";
           commands = [
-            {package = "commitizen";}
+            {package = "git-cliff";}
             {package = "pre-commit";}
           ];
           devshell.startup.preCommitHooks.text = ''

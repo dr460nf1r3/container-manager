@@ -1,7 +1,5 @@
 ---
 name: 'Release management'
-permissions:
-  contents: write
 on:
   push:
     tags: ['*']
@@ -14,25 +12,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v16
-        with:
-          extra-conf: |
-            accept-flake-config = true
-          diagnostic-endpoint: ''
-
-      - name: Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
-
       - name: Set Git User Info and pull eventual changes
         run: |
           git switch main
@@ -40,22 +19,35 @@ jobs:
           git config user.name 'Temeraire'
           git config user.email 'actions@chaotic.cx'
 
-      - name: Generate changelog
-        run: nix develop -c cz changelog --incremental
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose -o CHANGELOG.md
+          github_token: ${{ github.token }}
+        env:
+          GITHUB_REPO: ${{ github.repository }}
 
-      - name: Commit Changelog
+      - name: Commit changelog
         run: |
+          git checkout main
+          git config user.name 'Temeraire'
+          git config user.email 'actions@chaotic.cx'
           git add CHANGELOG.md
-          git commit -m "docs(CHANGELOG.md): update" || echo "No changes to commit"
-          git push origin HEAD:main || git pull --rebase && git push origin HEAD:main
+          git commit -m "docs(CHANGELOG.md): update"
+          git push "https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" main
 
-      - name: Get only latest release notes
-        run: |
-          pnpm run changelog:latest
+      - name: Generate a changelog for the latest release
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose --latest --strip header -o CHANGES.md
+        env:
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          body_path: CHANGELOG.temp
+          body_path: CHANGES.md
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
