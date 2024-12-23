@@ -7,7 +7,7 @@
   },
   "item": [
     {
-      "name": "Delete",
+      "name": "Container",
       "request": {
         "method": "GET",
         "header": [
@@ -17,16 +17,69 @@
           }
         ],
         "url": {
-          "raw": "http://localhost/delete?branch=main",
+          "raw": "http://localhost/container?branch=main",
           "protocol": "http",
           "host": ["localhost"],
-          "path": ["delete"],
+          "path": ["container"],
           "query": [
             {
               "key": "branch",
               "value": "main"
             }
           ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Container",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "X-Admin-Request",
+            "value": "true"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost/container?branch=test-env-1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "path": ["container"],
+          "query": [
+            {
+              "key": "branch",
+              "value": "test-env-1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Container (keep active)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Admin-Request",
+            "value": "true"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"branch\": \"main\",\n    \"keepActive\": \"true\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost/container",
+          "protocol": "http",
+          "host": ["localhost"],
+          "path": ["container"]
         }
       },
       "response": []
@@ -46,31 +99,6 @@
           "raw": "http://main.localhost",
           "protocol": "http",
           "host": ["main", "localhost"]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Run",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-Admin-Request",
-            "value": "true"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost/run?branch=main",
-          "protocol": "http",
-          "host": ["localhost"],
-          "path": ["run"],
-          "query": [
-            {
-              "key": "branch",
-              "value": "main"
-            }
-          ]
         }
       },
       "response": []
@@ -109,34 +137,6 @@
           "protocol": "http",
           "host": ["localhost"],
           "path": ["health"]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Run (keep active)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "X-Admin-Request",
-            "value": "true"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n    \"branch\": \"main\",\n    \"keepActive\": \"true\"\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost/run",
-          "protocol": "http",
-          "host": ["localhost"],
-          "path": ["run"]
         }
       },
       "response": []
