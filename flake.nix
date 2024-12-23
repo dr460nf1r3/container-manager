@@ -42,19 +42,21 @@
             name = "alejandra";
           };
           commitizen.enable = true;
-          flake-checker.enable = true;
-          hadolint.enable = true;
-          pnpm-lint = {
-            description = "Run pnpm lint";
+          # Eslint pulls ~1GB of nix derivations, let's reuse node_modules instead
+          eslint = {
+            description = "Run eslint";
             enable = true;
             entry = ''
               ${pkgs.pnpm}/bin/pnpm run lint
             '';
-            name = "pnpm-lint";
+            name = "eslint";
             pass_filenames = false;
           };
+          flake-checker.enable = true;
+          hadolint.enable = true;
           prettier.enable = true;
           shellcheck.enable = true;
+          shfmt.enable = true;
           typos.enable = true;
           yamllint.enable = true;
         };
