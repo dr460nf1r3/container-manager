@@ -541,6 +541,13 @@ export class ContainerManager {
         {
           AutoRemove: false,
           Binds: binds,
+          LogConfig: {
+            Type: 'local',
+            Config: {
+              'max-size': '10m',
+              'max-file': '5',
+            },
+          },
         },
         HostConfig ? HostConfig : {},
       ),
