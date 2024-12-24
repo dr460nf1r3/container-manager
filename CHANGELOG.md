@@ -1,3 +1,29 @@
+## [2.1.0](https://github.com/dr460nf1r3/container-manager/compare/2.0.0..2.1.0) - 2024-12-24
+
+### ⛰️  Features
+
+- *(container-manager)* Automated and default deployment of the Dozzle log viewer - ([47a4091](https://github.com/dr460nf1r3/container-manager/commit/47a4091d8e08b2b2c62a1271b5e682ef92a05a9d))
+
+### 🐛 Bug Fixes
+
+- *(container-manager)* Explicitly set the container hosts logconfig to fix no/bad log output - ([c4ba993](https://github.com/dr460nf1r3/container-manager/commit/c4ba99357577f95ffdc9fb6fee0acc33500d32eb))
+
+### 📚 Documentation
+
+- *(CHANGELOG.md)* Update - ([65c5f77](https://github.com/dr460nf1r3/container-manager/commit/65c5f773d2abbe58db8a550453957d12da1ed052))
+- *(readme.md)* Update with new changes - ([e20b79a](https://github.com/dr460nf1r3/container-manager/commit/e20b79a03d3f593fbe96bea808c0323ea9c3ba07))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Finish moving to git-cliff - ([04470e4](https://github.com/dr460nf1r3/container-manager/commit/04470e4889ab3e6f85d05ae4fd088244239111a8))
+- *(package.json)* Add more metadata and sort entries - ([a9083e6](https://github.com/dr460nf1r3/container-manager/commit/a9083e6f17201411b96df1f7e46f36aff97f7fe1))
+- Add SECURITY/CODE_OF_CONDUCT.md - ([5ee21ec](https://github.com/dr460nf1r3/container-manager/commit/5ee21eca7f6e5a8ca7415a737b44217f4db94e81))
+
+### Build
+
+- *(dockerfile)* Raise Node version in use to 23 - ([3f46799](https://github.com/dr460nf1r3/container-manager/commit/3f46799fa8ab7f703b8540be976c0afe3aa5997d))
+
+
 ## [2.0.0](https://github.com/dr460nf1r3/container-manager/compare/1.2.0..2.0.0) - 2024-12-23
 
 ### ⛰️  Features
