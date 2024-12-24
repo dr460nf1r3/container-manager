@@ -14,6 +14,10 @@ Once it receives a request again, it is resumed.
 It works in connection with the [container-manager-dind](https://github.com/dr460nf1r3/container-manager-dind) image,
 although own images can be used as well.
 
+Since I did not feel like reinventing the wheel when it comes writing a frontend for viewing container host logs,
+I am instead recommending the use of the excellent Docker OSS sponsored [Dozzle](https://github.com/amir20/dozzle) for this purpose.
+It works very well and does just what I was going to implement anyway in a much better way.
+
 ## Features
 
 - Create and delete Docker containers hosts (DinD) based on a specific branch
@@ -40,8 +44,8 @@ services:
     ports:
       - '80:3000'
     volumes:
+      - '/var/lib/container-manager:/var/lib/container-manager:rw'
       - '/var/run/docker.sock:/var/run/docker.sock:rw'
-      - '/var/lib/container/manager:/var/lib/container/manager:rw'
     environment:
       CONFIG_CONTAINER_PREFIX: container-host
       CONFIG_CUSTOM_BUILD_SCRIPT: ci/build.sh
@@ -58,6 +62,12 @@ services:
       CONFIG_SUSPEND_MODE: stop
     networks:
       - container-manager
+    restart: always
+    logging:
+      driver: 'local'
+      options:
+        max-size: '10m'
+        max-file: '5'
 
 networks:
   container-manager:
@@ -95,13 +105,34 @@ request to the `/run` route.
 - `CONFIG_DATA_DIR_HOST`: Directory on the host where the data is stored (must exist on the host, too)
 - `CONFIG_DIR_CONTAINER`: Directory in the container hosts where the config files are stored
 - `CONFIG_DIR_HOST`: Directory on the host where the per-branch directories are stored (must exit on the host, too)
-- `CONFIG_HOSTNAME`: Hostname of the container host
-- `CONFIG_IDLE_TIMEOUT`: Time in milliseconds after which a container is paused if no requests are received
-- `CONFIG_LOGLEVEL`: Log level of the application (one of "verbose," "debug," "info," "warn," "error," "fatal")
-- `CONFIG_MASTER_IMAGE`: Image used to create the container hosts
-- `CONFIG_MASTER_IMAGE_TAG`: Tag of the image used to create the container hosts
+- `CONFIG_HOSTNAME`: Hostname of the container host, defaults to `localhost.local`
+- `CONFIG_IDLE_TIMEOUT`: Time in milliseconds after which a container is paused if no requests are received, defaults to 10 minutes
+- `CONFIG_LOGLEVEL`: Log level of the application (one of "verbose," "debug," "log," "warn," "error," "fatal"), defaults to
+  "log"
+- `CONFIG_LOGVIEWER`: Whether to enable the Dozzle log viewer to be deployed with correct defaults, either `true` or `false`,
+  defaults to `true`
+- `CONFIG_LOGVIEWER_CONTAINER_NAME`: Container name of the Dozzle log viewer, defaults to `container-logviewer`
+- `CONFIG_LOGVIEWER_IMAGE`: Image used to create the Dozzle log viewer, defaults to `amir20/dozzle`
+- `CONFIG_LOGVIEWER_PORT`: Port on which the Dozzle log viewer is exposed, defaults to `8080`
+- `CONFIG_LOGVIEWER_TAG`: Tag of the image used to create the Dozzle log viewer, defaults to `latest`
+- `CONFIG_MASTER_IMAGE_TAG`: Tag of the image used to create the container hosts, defaults to `main`
+- `CONFIG_MASTER_IMAGE`: Image used to create the container hosts, defaults to `dr460nf1r3/container-manager-dind`
 - `CONFIG_REPO_URL`: URL of the repository that is cloned when a container host is created
-- `CONFIG_SUSPEND_MODE`: Mode in which the container is paused, either `stop` or `pause`
+- `CONFIG_SUSPEND_MODE`: Mode in which the container is paused, either `stop` or `pause`, defaults to `stop`
+
+## Viewing container host logs
+
+Even though this can easily be done via the Docker CLI, using Dozzle is a more convenient way to view the logs.
+It also doesn't require you to have access to the host machine, making it a good fit for developers testing their deployments.
+This application provides a Dozzle container by default when starting up, that can be used to view the logs of the container hosts.
+It's scope is limited to the container hosts and the application itself, so no other containers are visible.
+Also, the Docker Socket is mounted read-only, so no actions can be taken via the Dozzle interface.
+
+After the start of the application, the Dozzle interface can be accessed via [http://localhost:8080](http://localhost:8080).
+
+A few things can be configured via environment variables (see [above](#environment-variables)),
+if further customization is needed, please consult the [Dozzle documentation](https://dozzle.dev/guide/what-is-dozzle),
+disable automatic deployment of the container and add a custom instance to the compose file directly.
 
 ## Admin routes
 
