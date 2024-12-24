@@ -7,8 +7,8 @@ services:
     ports:
       - '80:3000'
     volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock:rw'
       - '/var/lib/container-manager:/var/lib/container-manager:rw'
+      - '/var/run/docker.sock:/var/run/docker.sock:rw'
     environment:
       CONFIG_CONTAINER_PREFIX: container-host
       CONFIG_CONTAINER_MANAGER_NAME: container-manager
@@ -20,6 +20,7 @@ services:
       CONFIG_HOSTNAME: localhost.local
       CONFIG_IDLE_TIMEOUT: 60000
       CONFIG_LOGLEVEL: log
+      CONFIG_LOGVIEWER: true
       CONFIG_MASTER_IMAGE: dr460nf1r3/container-manager-dind
       CONFIG_MASTER_IMAGE_TAG: main
       CONFIG_REPO_URL: https://github.com/dr460nf1r3/dind-poc.git

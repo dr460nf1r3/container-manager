@@ -280,9 +280,10 @@ export class ContainerManager {
     }
 
     await this.ensureMasterImage();
+    if (this.config.logViewer) void this.deployLogViewer();
     await this.loadState();
-    Logger.debug(this.containers, 'ContainerManager/init');
 
+    Logger.debug(this.containers, 'ContainerManager/init');
     void this.saveState();
 
     this.initialized = true;
@@ -421,6 +422,7 @@ export class ContainerManager {
       Logger.warn('No state file found, starting fresh...', 'ContainerManager/loadState');
       return;
     }
+    const deploymentPromises: Promise<ContainerConfig>[] = [];
 
     try {
       const state: string = await fs.readFile(this.getConfigPath(), 'utf-8');
@@ -442,7 +444,7 @@ export class ContainerManager {
             authToken: undefined,
             authUser: undefined,
           };
-          await this.createContainerHost(containerConfig);
+          deploymentPromises.push(this.createContainerHost(containerConfig));
         } else {
           Logger.log(`Found container ${config.branch} in running containers...`, 'ContainerManager/loadState');
         }
@@ -452,6 +454,14 @@ export class ContainerManager {
     }
   }
 
+  /**
+   * Pulls an image from the Docker registry if it's not already present.
+   * Additionally, it waits for the image to be pulled before continuing,
+   * preventing multiple pulls of the same image.
+   * @param imageName The name of the image to pull.
+   * @param locked Whether the image is currently locked / or a pull is already active.
+   * @private
+   */
   private async pullImage(imageName: string, locked = false): Promise<void> {
     while (!locked) {
       setTimeout(() => console.log('Waiting for unlock...'), 1000);
@@ -726,8 +736,10 @@ export class ContainerManager {
    * Suspends all containers on shutdown
    */
   private async shutdown(): Promise<void> {
-    await Promise.allSettled(
-      this.containers.map(async (container) => {
+    const shutdownPromises: Promise<void>[] = [];
+
+    shutdownPromises.push(
+      ...this.containers.map(async (container) => {
         if (container.status === ContainerHostStatus.ACTIVE) {
           Logger.log(`Suspending container for branch ${container.branch}`, 'ContainerManager/shutdown');
 
@@ -738,6 +750,9 @@ export class ContainerManager {
       }),
     );
 
+    if (this.config.logViewer) shutdownPromises.push(this.destroyLogViewer());
+
+    await Promise.allSettled(shutdownPromises);
     Logger.log('All containers suspended', 'ContainerManager/shutdown');
   }
 
@@ -801,5 +816,72 @@ export class ContainerManager {
     }
 
     return configPath;
+  }
+
+  /**
+   * Deploys the Dozzle log viewer container.
+   * This is a separate container from another developer that allows users to view logs from other containers.
+   * For more information, see https://dozzle.dev.
+   * @private
+   */
+  private async deployLogViewer(): Promise<void> {
+    Logger.log('Deploying log viewer...', 'ContainerManager/deployLogViewer');
+
+    try {
+      const image = `${this.config.logViewerImage}:${this.config.logViewerTag}`;
+      await this.getImage(image);
+
+      const logViewer: ContainerInfo = (await this.docker.listContainers({ all: true })).find((container) =>
+        container.Names.includes(`/${this.config.logViewerContainerName}`),
+      );
+      if (logViewer) {
+        Logger.log('Log viewer already exists, destroying...', 'ContainerManager/deployLogViewer');
+        await this.kill(this.docker.getContainer(logViewer.Id));
+      }
+
+      // This limits Dozzle to only show logs from containers which are managed by this application / or the application itself.
+      const viewFilter = `name=(${this.config.containerPrefix}-*|${this.config.logViewerContainerName}|container-manager)`;
+
+      const container: Container = await this.create(
+        image,
+        this.config.logViewerContainerName,
+        undefined,
+        ['/var/run/docker.sock:/var/run/docker.sock:ro'],
+        [`DOZZLE_FILTER=${viewFilter}`, 'DOZZLE_NO_ANALYTICS=1'],
+        {
+          LogConfig: {
+            Type: 'local',
+            Config: {
+              'max-size': '10m',
+              'max-file': '5',
+            },
+          },
+          PortBindings: {
+            '8080/tcp': [{ HostPort: this.config.logViewerPort.toString() }],
+          },
+        },
+      );
+      await this.start(container);
+    } catch (err: unknown) {
+      Logger.error(err, 'ContainerManager/deployLogViewer');
+    }
+  }
+
+  /**
+   * Destroys the log viewer container.
+   * @private
+   */
+  private async destroyLogViewer(): Promise<void> {
+    Logger.log('Destroying log viewer...', 'ContainerManager/destroyLogViewer');
+
+    try {
+      const allContainers: ContainerInfo[] = await this.docker.listContainers({ all: true });
+      const logViewer: ContainerInfo = allContainers.find((container) =>
+        container.Names.includes(`/${this.config.logViewerContainerName}`),
+      );
+      await this.kill(this.docker.getContainer(logViewer.Id));
+    } catch (err: unknown) {
+      Logger.error(err, 'ContainerManager/destroyLogViewer');
+    }
   }
 }

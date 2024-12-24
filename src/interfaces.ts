@@ -29,6 +29,11 @@ export interface AppConfig {
   hostname: string;
   idleTimeout: number;
   isProd: boolean;
+  logViewer: boolean;
+  logViewerContainerName: string;
+  logViewerImage: string;
+  logViewerPort: number;
+  logViewerTag: string;
   masterImage: string;
   masterImageAddPkg: string;
   masterTag: string;
