@@ -1,14 +1,14 @@
-FROM node:22-alpine AS build
+FROM node:23-alpine AS build
 
 COPY ../. /app
 WORKDIR /app
 
 RUN corepack enable pnpm && \
-    pnpm install
+    pnpm install --ignore-scripts --no-optional
 
 RUN pnpm run build
 
-FROM node:22-alpine
+FROM node:23-alpine
 
 RUN apk update --no-cache && \
   apk add --no-cache curl=8.11.1-r0
@@ -19,7 +19,7 @@ COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
 
 WORKDIR /app
 RUN corepack enable pnpm && \
-    pnpm install --prod
+    pnpm install --prod --ignore-scripts --no-optional
 
 LABEL maintainer="Nico Jensch <root@dr460nf1r3.org>"
 LABEL description="NestJS backend container for the container manager, ready to use for Docker in Docker test environments"

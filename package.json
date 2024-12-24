@@ -1,6 +1,6 @@
 {
   "name": "container-manager",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Simple NestJs backend for creating and managing docker containers, which run a set of Docker containers via DinD",
   "homepage": "https://github.com/dr460nf1r3/container-manager#readme",
