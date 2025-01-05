@@ -78,16 +78,20 @@
       in rec {
         default = container-manager;
         container-manager = mkShell {
-          commands = [{package = "pre-commit";}];
+          commands = [
+            {package = "corepack_latest";}
+            {package = "nodejs_latest";}
+            {package = "pre-commit";}
+          ];
           devshell = {
             name = "container-manager";
             startup.preCommitHooks.text = ''
               ${self.checks.${system}.pre-commit-check.shellHook}
 
               if [ ! -d node_modules ]; then
-                ${pkgs.pnpm}/bin/pnpm install
+                corepack pnpm install
               else
-                outcome=$(${pkgs.pnpm}/bin/pnpm install)
+                outcome=$(corepack pnpm install)
                 if  [[ !  "$outcome" =~ "Lockfile is up to date" ]]; then
                   echo "Dependencies have been updated"
                 fi
