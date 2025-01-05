@@ -1,6 +1,7 @@
 ![https://img.shields.io/docker/pulls/dr460nf1r3/container-manager.svg](https://img.shields.io/docker/pulls/dr460nf1r3/container-manager.svg)
 ![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/dr460nf1r3/container-manager/main)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dr460nf1r3/container-manager/publish-backend.yml)
+[![Test and deploy container](https://github.com/dr460nf1r3/container-manager/actions/workflows/publish-backend.yml/badge.svg?branch=main)](https://github.com/dr460nf1r3/container-manager/actions/workflows/publish-backend.yml)
+[![Release management](https://github.com/dr460nf1r3/container-manager/actions/workflows/release-changelog.yml/badge.svg?branch=main)](https://github.com/dr460nf1r3/container-manager/actions/workflows/release-changelog.yml)
 ![GitHub Tag](https://img.shields.io/github/v/tag/dr460nf1r3/container-manager)
 ![GitHub License](https://img.shields.io/github/license/dr460nf1r3/container-manager)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
@@ -29,9 +30,12 @@ It works very well and does just what I was going to implement anyway in a much 
 ## Requirements
 
 - [Docker](https://docs.docker.com/get-docker/), alternatively [Podman](https://podman.io/getting-started/installation)
-- [Docker Compose](https://docs.docker.com/compose/install/) (works with Podman, too)
 - A host allowing Docker in Docker containers (specifically: allow `--privileged`), therefore it is best to use a
   dedicated host for this application.
+
+### Not required, but recommended
+
+- [Docker Compose](https://docs.docker.com/compose/install/) (works with Podman, too)
 
 ## Sample compose.yml for running the application
 
@@ -73,6 +77,30 @@ networks:
   container-manager:
     external: true
     name: container-manager
+```
+
+Alternatively, the corresponding `docker run` command would be as follows:
+
+```bash
+$ docker run --net container-manager --name container-manager -p 80:3000 \
+  -v /var/lib/container-manager:/var/lib/container-manager:rw \
+  -v /var/run/docker.sock:/var/run/docker.sock:rw \
+  -e CONFIG_CONTAINER_PREFIX=container-host \
+  -e CONFIG_CUSTOM_BUILD_SCRIPT=ci/build.sh \
+  -e CONFIG_CUSTOM_BUILD_SCRIPT_LOCAL=false \
+  -e CONFIG_DATA_DIR_HOST=/var/lib/container-manager/data \
+  -e CONFIG_DIR_CONTAINER=/config \
+  -e CONFIG_DIR_HOST=/var/lib/container-manager/config \
+  -e CONFIG_HOSTNAME=localhost.local \
+  -e CONFIG_IDLE_TIMEOUT=60000 \
+  -e CONFIG_LOGLEVEL=debug \
+  -e CONFIG_MASTER_IMAGE=dr460nf1r3/container-manager-dind \
+  -e CONFIG_MASTER_IMAGE_TAG=main \
+  -e CONFIG_REPO_URL=https://github.com/dr460nf1r3/dind-poc.git \
+  -e CONFIG_SUSPEND_MODE=stop \
+  --restart always \
+  --log-driver local --log-opt max-size=10m,max-file=5 \
+  dr460nf1r3/container-manager:main
 ```
 
 ## Running the application
@@ -446,8 +474,8 @@ X-Admin-Request: string
 
 ## Eventually planned features
 
-- [ ] Add support managing container hosts via a web interface
-- [ ] Add support for streaming logs from the container hosts via web interface
+- [x] Add support managing container hosts via a web interface (implemented in Version 2.1.0 via the Dozzle container)
+- [x] Add support for streaming logs from the container hosts via web interface (implemented in Version 2.1.0 via the Dozzle container)
 - [ ] You tell me!
 
 Pull requests for new features and bugfixes are always welcome!
