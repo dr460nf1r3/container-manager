@@ -74,7 +74,11 @@ test-suspend() {
   # In case we were too fast, try again after waiting for the timeout
   if ! sudo docker inspect container-host-test-env-1 | jq '.[0].State.Status' | grep -q "exited" &>/dev/null; then
     echo "Container not yet suspended, waiting 30 seconds to be sure..."
-    sleep 30
+    COUNT=0
+    while ! sudo docker inspect container-host-test-env-1 | jq '.[0].State.Status' | grep -q "exited" &>/dev/null && [[ $COUNT -lt 40 ]]; do
+      sleep 1
+      ((COUNT++))
+    done
   fi
   sudo docker inspect container-host-test-env-1 | jq '.[0].State.Status' | grep -q "exited" &>/dev/null && SUCCESS+=("$_test_name") || FAILURES+=("$_test_name")
 
