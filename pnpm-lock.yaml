@@ -116,7 +116,7 @@ importers:
         version: 5.2.3(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@9.18.0(jiti@2.4.2)))(eslint@9.18.0(jiti@2.4.2))(prettier@3.4.2)
       git-cliff:
         specifier: ^2.7.0
-        version: 2.7.0
+        version: 2.8.0
       globals:
         specifier: ^15.14.0
         version: 15.14.0
@@ -2477,38 +2477,38 @@ packages:
     resolution: {integrity: sha512-VaUJspBffn/LMCJVoMvSAdmscJyS1auj5Zulnn5UoYcY531UWmdwhRWkcGKnGU93m5HSXP9LP2usOryrBtQowA==}
     engines: {node: '>=16'}
 
-  git-cliff-darwin-arm64@2.7.0:
-    resolution: {integrity: sha512-8D6Zxk9onts9r16yzuJEUq4ixGMJYvUI47GujUbs3ifsXB7x8SCOX7QCwmylRkZKnRC95fZ3jwi+gy95SwVaPQ==}
+  git-cliff-darwin-arm64@2.8.0:
+    resolution: {integrity: sha512-rurUV2d1Z2n+c2+wUrO0gZaFb3c1G+ej0bPfKTPfde/CblxiysMkh+4dz23NrVbc8IlS5rSYv/JFGVaVSBNJRw==}
     cpu: [arm64]
     os: [darwin]
 
-  git-cliff-darwin-x64@2.7.0:
-    resolution: {integrity: sha512-CkADqy5hif6P6rrTIWkkSkrsQzbcTv1kr5dAIpRq9SkjWVpRHQftouhNyB2qfNe0SH73R9N9oCIocIA1bSnVeQ==}
+  git-cliff-darwin-x64@2.8.0:
+    resolution: {integrity: sha512-Wtj+FGWZBWmeYUAGlkfz7QPz4+VVxxDPMhQ/7iwKVA3iryIX0slGfzYpqMurEFnTAMr0r+4IU3Q4O/ib7iUscg==}
     cpu: [x64]
     os: [darwin]
 
-  git-cliff-linux-arm64@2.7.0:
-    resolution: {integrity: sha512-kuJz+hL+nDqmK2E3/uahufdAHKjn76F0rv/oZpaQgUSmdE8vy9x1J28YSoXTlXIr0BfuzZjxCKrrfr8b7wU/Xw==}
+  git-cliff-linux-arm64@2.8.0:
+    resolution: {integrity: sha512-k4RdfMdORXyefznWlQb+7wDgo7XgQF9qg8hJC34bwyJK2sODirrGau3uTx1/9Fi37g+pAOM7wM+LYppHCTZ2bQ==}
     cpu: [arm64]
     os: [linux]
 
-  git-cliff-linux-x64@2.7.0:
-    resolution: {integrity: sha512-0qHHPEsAo9HQZpifM9wdnjot90yB7C+LIHSFfGhkTsmzr/Daxnekt0um6mb3yEA7YuFnE9+c8mvLDoXlgJ5eaA==}
+  git-cliff-linux-x64@2.8.0:
+    resolution: {integrity: sha512-FcWX4GHgodYrQlZR03fzooanStgR03JNWvyaMQB1asplQ18nlziK2UyA+PESCIxOQmeLXauqoCApfzmdtp5myg==}
     cpu: [x64]
     os: [linux]
 
-  git-cliff-windows-arm64@2.7.0:
-    resolution: {integrity: sha512-uq5qGuWkO6YCEGg9nDk3butX0F80hfICsBh6LWicL9bfpyfEzdSbuv4AS1hJ2jTIjqRMOP2NRSii4pM9bqjfsw==}
+  git-cliff-windows-arm64@2.8.0:
+    resolution: {integrity: sha512-GJSrqmBVTbMtBJI3/YCDxLviZZDgYgnKqYgquBk2u2AELAnnuWFnVFQ7ZEBUqgFF2UJu9EdV2Nv6MV8d/wnP0g==}
     cpu: [arm64]
     os: [win32]
 
-  git-cliff-windows-x64@2.7.0:
-    resolution: {integrity: sha512-WOoKrlYvRMaWcEdQZD1I+Pg+W6yjztxzUkid7qqyum6J2e21kfw8asL5gDnTX9rZAKu+MV29/zG7RdFqKD2qsA==}
+  git-cliff-windows-x64@2.8.0:
+    resolution: {integrity: sha512-8jl0YMXPYjUmVygUEeQ4wf1zte3Rv8LPq1sIklUKl80XE4g2Gm/8EIWbKpUPLQH6IncRwepY6VuMgpVpPXbwNw==}
     cpu: [x64]
     os: [win32]
 
-  git-cliff@2.7.0:
-    resolution: {integrity: sha512-gO4rb3VCAvzv+vWPPspxSCAeDAQbvknYioO43Wb+Dn0MWFC3zc89uwkxx36yAmCa7qui9TL2E3vSz6j9GbbzqA==}
+  git-cliff@2.8.0:
+    resolution: {integrity: sha512-iKF5QTXAb9+iVvmu5HpnMPWYw7fs74xkpAaRbSf29+dZaMTTNRIUST/y+Ir2S1bDUWWJNjXlwT9ZT62JuYLQnA==}
     engines: {node: '>=18.19 || >=20.6 || >=21'}
     hasBin: true
 
@@ -7210,34 +7210,34 @@ snapshots:
 
   get-stream@8.0.1: {}
 
-  git-cliff-darwin-arm64@2.7.0:
+  git-cliff-darwin-arm64@2.8.0:
     optional: true
 
-  git-cliff-darwin-x64@2.7.0:
+  git-cliff-darwin-x64@2.8.0:
     optional: true
 
-  git-cliff-linux-arm64@2.7.0:
+  git-cliff-linux-arm64@2.8.0:
     optional: true
 
-  git-cliff-linux-x64@2.7.0:
+  git-cliff-linux-x64@2.8.0:
     optional: true
 
-  git-cliff-windows-arm64@2.7.0:
+  git-cliff-windows-arm64@2.8.0:
     optional: true
 
-  git-cliff-windows-x64@2.7.0:
+  git-cliff-windows-x64@2.8.0:
     optional: true
 
-  git-cliff@2.7.0:
+  git-cliff@2.8.0:
     dependencies:
       execa: 8.0.1
     optionalDependencies:
-      git-cliff-darwin-arm64: 2.7.0
-      git-cliff-darwin-x64: 2.7.0
-      git-cliff-linux-arm64: 2.7.0
-      git-cliff-linux-x64: 2.7.0
-      git-cliff-windows-arm64: 2.7.0
-      git-cliff-windows-x64: 2.7.0
+      git-cliff-darwin-arm64: 2.8.0
+      git-cliff-darwin-x64: 2.8.0
+      git-cliff-linux-arm64: 2.8.0
+      git-cliff-linux-x64: 2.8.0
+      git-cliff-windows-arm64: 2.8.0
+      git-cliff-windows-x64: 2.8.0
 
   glob-parent@5.1.2:
     dependencies:
