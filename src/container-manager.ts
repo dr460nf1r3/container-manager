@@ -19,7 +19,7 @@ import { AxiosResponse } from 'axios';
 import { AppConfig, ContainerConfig, SaveFile, StatusReport } from './interfaces';
 import { getConfig } from './config';
 import { AppHealth, ContainerHostStatus, ONE_WEEK } from './constants';
-import { deleteIfExists, dontTouchContainer, pathExists } from './functions';
+import { deleteIfExists, dontTouchContainer, pathExists, sanitizeContainerName } from './functions';
 
 export class ContainerManager {
   containers: ContainerConfig[] = [];
@@ -49,6 +49,7 @@ export class ContainerManager {
    * @param remove Whether to remove the container before redeploying, if it already exists.
    */
   async newDeployment(options: RunContainerDto, remove = true): Promise<ContainerConfig> {
+    options.branch = sanitizeContainerName(options.branch);
     const containerInConfig: ContainerConfig = this.containers.find((container) =>
       container.branch?.includes(options.branch),
     );
@@ -100,7 +101,7 @@ export class ContainerManager {
    * @returns The container to access.
    */
   async accessContainer(host: string): Promise<Container> {
-    const containerName: string = host.split('.')[0];
+    const containerName: string = sanitizeContainerName(host.split('.')[0]);
     const container: ContainerConfig = this.containers.find((container) => container.branch === containerName);
 
     Logger.debug(`Accessing container via subdomain ${containerName}`, 'ContainerManager/accessContainer');
@@ -228,6 +229,7 @@ export class ContainerManager {
    */
   async deleteContainer(name: string): Promise<void> {
     Logger.log(`Deleting container for branch ${name}`, 'ContainerManager/deleteContainer');
+    name = sanitizeContainerName(name);
     const container: Container = this.docker.getContainer(`${this.config.containerPrefix}-${name}`);
 
     if (!container) {
@@ -319,6 +321,7 @@ export class ContainerManager {
    */
   private async createContainerHost(options: RunContainerDto): Promise<ContainerConfig> {
     Logger.log(`Creating container host for branch ${options.branch}`, 'ContainerManager/createContainerHost');
+    options.branch = sanitizeContainerName(options.branch);
     let containerConfig: ContainerConfig;
 
     try {

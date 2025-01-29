@@ -29,6 +29,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { checkWhetherWeShouldAdmin } from './middleware';
+import { sanitizeContainerName } from './functions';
 
 @Controller()
 export class AppController {

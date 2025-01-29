@@ -56,3 +56,12 @@ export function deleteIfExists(path: fs.PathLike): void {
 export function dontTouchContainer(status: ContainerHostStatus): boolean {
   return status === (ContainerHostStatus.BUILDING || ContainerHostStatus.SUSPENDING || ContainerHostStatus.STARTING);
 }
+
+/**
+ * Sanitize a hostname to be used in a container name.
+ * @param hostname The hostname to sanitize.
+ * @returns The sanitized hostname.
+ */
+export function sanitizeContainerName(hostname: string): string {
+  return hostname.replace(/[^a-zA-Z0-9-]/g, '-');
+}
