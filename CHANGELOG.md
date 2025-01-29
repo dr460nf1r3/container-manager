@@ -1,3 +1,43 @@
+## [2.2.0](https://github.com/dr460nf1r3/container-manager/compare/2.1.0..2.2.0) - 2025-01-29
+
+### ⛰️  Features
+
+- Sanitize container/subdomain name - ([7afe302](https://github.com/dr460nf1r3/container-manager/commit/7afe3026d0bb8440ad40b7554ec2852234c80966))
+
+### 🐛 Bug Fixes
+
+- *(Dockerfile)* Module missing - ([0545a56](https://github.com/dr460nf1r3/container-manager/commit/0545a563aee9aa99976bcb5ea496ee5555022aa2))
+- *(controller)* Make eslint happy - ([801f89c](https://github.com/dr460nf1r3/container-manager/commit/801f89c538fbfab228941756f4ad441ed87d3ebe))
+- *(deps)* Update dependency @nestjs/swagger to v8.1.1 - ([2ff614b](https://github.com/dr460nf1r3/container-manager/commit/2ff614b65ec1b6df08ebbd20328b6f4aec7238d4))
+
+### 📚 Documentation
+
+- *(CHANGELOG.md)* Update - ([67c0f73](https://github.com/dr460nf1r3/container-manager/commit/67c0f73fd6624eb03d25d10307269f1f5fbcdde7))
+- *(readme.md)* Update / fix badges - ([092963e](https://github.com/dr460nf1r3/container-manager/commit/092963e11539cd90f95657ec59d7bcda6cb460b3))
+
+### 🧪 Testing
+
+- *(e2e)* Increase timeout for suspension - ([d4f3803](https://github.com/dr460nf1r3/container-manager/commit/d4f3803a381469858698207a4e7bb9158b24cc75))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(dind)* Update submodule - ([991ecec](https://github.com/dr460nf1r3/container-manager/commit/991ececdb0893229432fcf9118dfd6547a545e28))
+- *(flake.nix)* Fix pnpm install output, export path via envrc - ([c2c5816](https://github.com/dr460nf1r3/container-manager/commit/c2c581653a0fa95122e5f5357ce1f93178809f7f))
+- *(package.json)* Update deps - ([e1698fe](https://github.com/dr460nf1r3/container-manager/commit/e1698fe78a8adeecc5c163360cb39dba20be9051))
+- Update deps - ([e472f14](https://github.com/dr460nf1r3/container-manager/commit/e472f1462ed6bd1dd9a90f98988fa1610c03f343))
+- Use nix-direnv, ship nodejs in flake.nix, use corepack - ([2fffc2e](https://github.com/dr460nf1r3/container-manager/commit/2fffc2ed36561a15c3a6871245d4ab317b1c989f))
+
+### Build
+
+- *(pnpm)* Update - ([9ed84da](https://github.com/dr460nf1r3/container-manager/commit/9ed84da1c6360ed95f5922d016516d3d7abc0464))
+- Major NestJs 11/Fastify 5 upgrade - ([2d00ed2](https://github.com/dr460nf1r3/container-manager/commit/2d00ed2e5f60f722594d1b064012bf621933f16e))
+
+## New Contributors ❤️
+
+* @renovate[bot] made their first contribution in [#39](https://github.com/dr460nf1r3/container-manager/pull/39)
+* @dr460nf1r3 made their first contribution
+* @temeraire-cx made their first contribution
+
 ## [2.1.0](https://github.com/dr460nf1r3/container-manager/compare/2.0.0..2.1.0) - 2024-12-24
 
 ### ⛰️  Features
