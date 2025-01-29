@@ -4,7 +4,7 @@ COPY ../. /app
 WORKDIR /app
 
 RUN corepack enable pnpm && \
-    pnpm install --ignore-scripts --no-optional
+    pnpm install
 
 RUN pnpm run build
 
@@ -19,7 +19,7 @@ COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
 
 WORKDIR /app
 RUN corepack enable pnpm && \
-    pnpm install --prod --ignore-scripts --no-optional
+    pnpm install --prod
 
 LABEL maintainer="Nico Jensch <root@dr460nf1r3.org>"
 LABEL description="NestJS backend container for the container manager, ready to use for Docker in Docker test environments"
