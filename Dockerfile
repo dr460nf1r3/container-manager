@@ -11,7 +11,7 @@ RUN pnpm run build
 FROM node:23-alpine
 
 # renovate: datasource=repology depName=alpine_3_21/curl
-ENV CURL_VERSION="curl-8.12.1-r1"
+ENV CURL_VERSION="8.12.1-r1"
 
 RUN apk update --no-cache && \
     apk add --no-cache curl=${CURL_VERSION}
