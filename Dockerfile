@@ -11,10 +11,10 @@ RUN pnpm run build
 FROM node:23-alpine
 
 # renovate: datasource=repology depName=alpine_3_21/curl
-ENV CURL_VERSION="8.11.1-r0"
+ENV CURL_VERSION="curl-8.12.1-r1"
 
 RUN apk update --no-cache && \
-  apk add --no-cache curl=${CURL_VERSION}
+    apk add --no-cache curl=${CURL_VERSION}
 
 COPY --from=build /app/dist /app
 COPY --from=build /app/package.json /app/package.json
@@ -36,7 +36,7 @@ ENV DOCKER_SOCKET=/var/run/docker.sock
 ENV NODE_ENV=production
 
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -sH "X-Admin-Request: true" localhost:3000/health || exit 1
+    CMD curl -sH "X-Admin-Request: true" localhost:3000/health || exit 1
 
 EXPOSE 3000
 VOLUME ["/var/lib/container-manager"]
