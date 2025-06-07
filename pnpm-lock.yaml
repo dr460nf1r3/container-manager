@@ -1377,8 +1377,8 @@ packages:
     resolution: {integrity: sha512-TH7YVKmoKg6GBLqZB+ETXObofcqJ/Tp5ycheolvYZMjLbMpzYf6MmOWTcBtx8+zrhWy8deV0hYkPvDFioDXdVQ==}
     engines: {node: '>=16', pnpm: '>=8.6.0'}
 
-  '@thednp/position-observer@1.0.8':
-    resolution: {integrity: sha512-NZ1cKuGBwWXZjpJvmipet8GyYnV+lUyOyiyzfuzO2Y5lqAPvep0P2QHkKMqe6V5+yEqwhRLhKoQO23z5PPgZ1w==}
+  '@thednp/position-observer@1.0.9':
+    resolution: {integrity: sha512-ClbEyK167pJD6QU7jGe6Pxj1aWPXKuKBF7JsDso/otwTsADefljSXI+VRQqaN+6hvW6OCTWRnFxNS4JdIhClPw==}
     engines: {node: '>=16', pnpm: '>=8.6.0'}
 
   '@thednp/shorty@2.0.11':
@@ -6072,7 +6072,7 @@ snapshots:
 
   '@thednp/event-listener@2.0.10': {}
 
-  '@thednp/position-observer@1.0.8':
+  '@thednp/position-observer@1.0.9':
     dependencies:
       '@thednp/shorty': 2.0.11
 
@@ -6594,7 +6594,7 @@ snapshots:
   bootstrap.native@5.1.4:
     dependencies:
       '@thednp/event-listener': 2.0.10
-      '@thednp/position-observer': 1.0.8
+      '@thednp/position-observer': 1.0.9
       '@thednp/shorty': 2.0.11
 
   brace-expansion@1.1.11:
