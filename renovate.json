@@ -34,7 +34,7 @@
     },
     {
       "datasources": ["repology"],
-      "packagePatterns": ["^alpine_3_21/"],
+      "packagePatterns": ["^alpine_3_22/"],
       "separateMajorMinor": false,
       "groupName": "Alpine packages",
       "groupSlug": "alpine"
