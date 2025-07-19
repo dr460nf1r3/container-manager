@@ -1,19 +1,28 @@
-## [2.2.0](https://github.com/dr460nf1r3/container-manager/compare/2.1.0..2.2.0) - 2025-01-29
+## [2.2.1](https://github.com/dr460nf1r3/container-manager/compare/2.1.0..2.2.1) - 2025-07-19
 
 ### ⛰️  Features
 
-- Sanitize container/subdomain name - ([7afe302](https://github.com/dr460nf1r3/container-manager/commit/7afe3026d0bb8440ad40b7554ec2852234c80966))
+- Sanitize container/subdomain name - ([302293f](https://github.com/dr460nf1r3/container-manager/commit/302293f31bf3a8fba7ef09b66c4e6a6767cd3641))
 
 ### 🐛 Bug Fixes
 
-- *(Dockerfile)* Module missing - ([0545a56](https://github.com/dr460nf1r3/container-manager/commit/0545a563aee9aa99976bcb5ea496ee5555022aa2))
-- *(controller)* Make eslint happy - ([801f89c](https://github.com/dr460nf1r3/container-manager/commit/801f89c538fbfab228941756f4ad441ed87d3ebe))
+- *(Dockerfile)* Module missing - ([160b0ea](https://github.com/dr460nf1r3/container-manager/commit/160b0eaf3e5d2cebeaa2a318d512b6c8ee15f4a8))
+- *(controller)* Make eslint happy - ([9370aa8](https://github.com/dr460nf1r3/container-manager/commit/9370aa869e5d560ce07be95542423c10128f9b90))
+- *(deps)* Update dependency @nestjs/common to v11.0.16 [security] - ([9268d4f](https://github.com/dr460nf1r3/container-manager/commit/9268d4f20ec40b19ba090d6920fba65d3c018974))
+- *(deps)* Update all patch dependencies - ([98d81f9](https://github.com/dr460nf1r3/container-manager/commit/98d81f994e24d015d385ce43bab73aaad78df6f7))
 - *(deps)* Update dependency @nestjs/swagger to v8.1.1 - ([2ff614b](https://github.com/dr460nf1r3/container-manager/commit/2ff614b65ec1b6df08ebbd20328b6f4aec7238d4))
+- *(dockerfile)* Update curl version - ([e1ec5d7](https://github.com/dr460nf1r3/container-manager/commit/e1ec5d7a34124265e711412c174ecdf0ba0745c6))
+- *(dockerfile)* Update curl version - ([5543ffa](https://github.com/dr460nf1r3/container-manager/commit/5543ffac9a03f79683f8abc963eb8f39ac746f2e))
 
 ### 📚 Documentation
 
+- *(CHANGELOG.md)* Update - ([d07381f](https://github.com/dr460nf1r3/container-manager/commit/d07381f0eee3c9d0715c0c0002d78bbb767f6de4))
 - *(CHANGELOG.md)* Update - ([67c0f73](https://github.com/dr460nf1r3/container-manager/commit/67c0f73fd6624eb03d25d10307269f1f5fbcdde7))
 - *(readme.md)* Update / fix badges - ([092963e](https://github.com/dr460nf1r3/container-manager/commit/092963e11539cd90f95657ec59d7bcda6cb460b3))
+
+### 🎨 Styling
+
+- Fix shfmt formatting - ([4259089](https://github.com/dr460nf1r3/container-manager/commit/4259089841e40cb42443b65e64db5fdc3baffb9d))
 
 ### 🧪 Testing
 
@@ -24,19 +33,21 @@
 - *(dind)* Update submodule - ([991ecec](https://github.com/dr460nf1r3/container-manager/commit/991ececdb0893229432fcf9118dfd6547a545e28))
 - *(flake.nix)* Fix pnpm install output, export path via envrc - ([c2c5816](https://github.com/dr460nf1r3/container-manager/commit/c2c581653a0fa95122e5f5357ce1f93178809f7f))
 - *(package.json)* Update deps - ([e1698fe](https://github.com/dr460nf1r3/container-manager/commit/e1698fe78a8adeecc5c163360cb39dba20be9051))
+- Update Node version of Dockerfile, curl - ([7e5d692](https://github.com/dr460nf1r3/container-manager/commit/7e5d692176dfa393f3a892c23561cdbb48b1fd59))
+- Dependency updates and lockfile update - ([e5e31d5](https://github.com/dr460nf1r3/container-manager/commit/e5e31d548a994d1420c181822233ce9ef22489be))
+- Update deps - ([fde86d2](https://github.com/dr460nf1r3/container-manager/commit/fde86d21a0dffa9fe37ffd25e6a8af2b860836e6))
+- Auto-update pinned alpine deps - ([0a9ad01](https://github.com/dr460nf1r3/container-manager/commit/0a9ad0102bf7b3d4677a9bc57db75d3b105eb197))
 - Update deps - ([e472f14](https://github.com/dr460nf1r3/container-manager/commit/e472f1462ed6bd1dd9a90f98988fa1610c03f343))
 - Use nix-direnv, ship nodejs in flake.nix, use corepack - ([2fffc2e](https://github.com/dr460nf1r3/container-manager/commit/2fffc2ed36561a15c3a6871245d4ab317b1c989f))
 
 ### Build
 
-- *(pnpm)* Update - ([9ed84da](https://github.com/dr460nf1r3/container-manager/commit/9ed84da1c6360ed95f5922d016516d3d7abc0464))
-- Major NestJs 11/Fastify 5 upgrade - ([2d00ed2](https://github.com/dr460nf1r3/container-manager/commit/2d00ed2e5f60f722594d1b064012bf621933f16e))
+- *(pnpm)* Update - ([ebd234a](https://github.com/dr460nf1r3/container-manager/commit/ebd234a0745e8c397d78ffb17e626d1878b8dd9c))
+- Major NestJs 11/Fastify 5 upgrade - ([f1db7ae](https://github.com/dr460nf1r3/container-manager/commit/f1db7ae57a2c7fbc97cf63b00341852164f023aa))
 
 ## New Contributors ❤️
 
-* @renovate[bot] made their first contribution in [#39](https://github.com/dr460nf1r3/container-manager/pull/39)
-* @dr460nf1r3 made their first contribution
-* @temeraire-cx made their first contribution
+* @renovate[bot] made their first contribution in [#84](https://github.com/dr460nf1r3/container-manager/pull/84)
 
 ## [2.1.0](https://github.com/dr460nf1r3/container-manager/compare/2.0.0..2.1.0) - 2024-12-24
 
