@@ -23,9 +23,9 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // @ts-ignore - this is ugly but works
+  // @ts-expect-error - this is ugly but works
   await app.register(helmet);
-  // @ts-ignore - this is ugly but works
+  // @ts-expect-error - this is ugly but works
   await app.register(fastifyReplyFrom);
 
   initLoglevel(process.env.CONFIG_LOGLEVEL ?? 'log');

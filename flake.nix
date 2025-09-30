@@ -51,7 +51,6 @@
             name = "eslint";
             pass_filenames = false;
           };
-          flake-checker.enable = true;
           hadolint.enable = true;
           prettier.enable = true;
           shellcheck.enable = true;
