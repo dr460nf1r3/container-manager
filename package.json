@@ -61,7 +61,7 @@
     "@nestjs/core": "^11.1.5",
     "@nestjs/platform-fastify": "^11.1.5",
     "@nestjs/schedule": "^6.0.1",
-    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/swagger": "^11.2.2",
     "@nestjs/throttler": "^6.4.0",
     "axios": "^1.12.2",
     "class-transformer": "^0.5.1",
