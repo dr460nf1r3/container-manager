@@ -1,17 +1,22 @@
-FROM node:24-alpine AS build
+FROM node:25-alpine3.22 AS build
+
+# renovate: datasource=repology depName=alpine_3_22/pnpm
+ENV PNPM_VERSION="10.9.0-r0"
 
 COPY ../. /app
 WORKDIR /app
 
-RUN corepack enable pnpm && \
+RUN apk add --no-cache pnpm=${PNPM_VERSION} && \
     pnpm install
 
 RUN pnpm run build
 
-FROM node:24-alpine
+FROM node:25-alpine3.22
 
 # renovate: datasource=repology depName=alpine_3_22/curl
 ENV CURL_VERSION="8.14.1-r2"
+# renovate: datasource=repology depName=alpine_3_22/pnpm
+ENV PNPM_VERSION="10.9.0-r0"
 
 RUN apk update --no-cache && \
     apk add --no-cache curl=${CURL_VERSION}
@@ -21,7 +26,7 @@ COPY --from=build /app/package.json /app/package.json
 COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
 
 WORKDIR /app
-RUN corepack enable pnpm && \
+RUN apk add --no-cache pnpm=${PNPM_VERSION} && \
     pnpm install --prod
 
 LABEL maintainer="Nico Jensch <root@dr460nf1r3.org>"
