@@ -13,7 +13,7 @@ importers:
         version: 13.0.2
       '@fastify/reply-from':
         specifier: ^12.5.0
-        version: 12.5.0
+        version: 12.6.0
       '@fastify/static':
         specifier: ^9.0.0
         version: 9.0.0
@@ -924,8 +924,8 @@ packages:
   '@fastify/proxy-addr@5.1.0':
     resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
 
-  '@fastify/reply-from@12.5.0':
-    resolution: {integrity: sha512-m7mTGjgtnpnZBk4I8r6eFJY8WB4kyvXJo2nAf5PBm5f3mj3P7G6H2D7mhmF25os/n6EGMWVyw/bpTUehvy0i8g==}
+  '@fastify/reply-from@12.6.0':
+    resolution: {integrity: sha512-NIV5YiQR5eNU0dg0G050yHpxb1D1HZ1XD8gIcpyT74qDHYLXDD913VjnfzwI7bbiZ/F+cxHkbduC22K6rfXywA==}
 
   '@fastify/send@4.1.0':
     resolution: {integrity: sha512-TMYeQLCBSy2TOFmV95hQWkiTYgC/SEx7vMdV+wnZVX4tt8VBLKzmH8vV9OzJehV0+XBfg+WxPMt5wp+JBUKsVw==}
@@ -4533,6 +4533,10 @@ packages:
     resolution: {integrity: sha512-MJZrkjyd7DeC+uPZh+5/YaMDxFiiEEaDgbUSVMXayofAkDWF1088CDo+2RPg7B1BuS1qf1vgNE7xqwPxE0DuSQ==}
     engines: {node: '>=20.18.1'}
 
+  undici@7.22.0:
+    resolution: {integrity: sha512-RqslV2Us5BrllB+JeiZnK4peryVTndy9Dnqq62S3yYRRTj0tFQCwEniUy2167skdGOy3vqRzEvl1Dm4sV2ReDg==}
+    engines: {node: '>=20.18.1'}
+
   unicode-canonical-property-names-ecmascript@2.0.1:
     resolution: {integrity: sha512-dA8WbNeb2a6oQzAQ55YlT5vQAWGV9WXOsi3SskE3bcCdM0P4SDd+24zS/OCacdRq5BkdsRj9q3Pg6YyQoxIGqg==}
     engines: {node: '>=4'}
@@ -5860,7 +5864,7 @@ snapshots:
       '@fastify/forwarded': 3.0.1
       ipaddr.js: 2.3.0
 
-  '@fastify/reply-from@12.5.0':
+  '@fastify/reply-from@12.6.0':
     dependencies:
       '@fastify/error': 4.2.0
       end-of-stream: 1.4.5
@@ -5868,7 +5872,7 @@ snapshots:
       fast-querystring: 1.1.2
       fastify-plugin: 5.1.0
       toad-cache: 3.7.0
-      undici: 7.20.0
+      undici: 7.22.0
 
   '@fastify/send@4.1.0':
     dependencies:
@@ -9833,6 +9837,8 @@ snapshots:
   undici-types@7.16.0: {}
 
   undici@7.20.0: {}
+
+  undici@7.22.0: {}
 
   unicode-canonical-property-names-ecmascript@2.0.1: {}
 
